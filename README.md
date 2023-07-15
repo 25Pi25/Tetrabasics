@@ -1,2 +1,2 @@
 # Tetrabasics
-Learn the basics of familiar block stacking with informative and interactive lessons!!
+Learn the basics of familiar block stacking with informative and interactive lessons!
