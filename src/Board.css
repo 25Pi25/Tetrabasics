@@ -1,0 +1,5 @@
+.board {
+    border: 5px solid rgb(128,128,128);
+    border-radius: 5px;
+    image-rendering: pixelated;
+}
