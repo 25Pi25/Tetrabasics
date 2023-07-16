@@ -48,6 +48,9 @@ interface ActiveTetraminoState {
 }
 export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetraminoState> {
     board: Board;
+    direction: TetraminoDirection.UP;
+    coords: Coordinate = { x: 4, y: 19 };
+    type: TetraminoType;
     state: ActiveTetraminoState = {
         direction: TetraminoDirection.UP,
         coords: { x: 4, y: 19 },
@@ -57,6 +60,13 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
     constructor(props: ActiveTetraminoProps) {
         super(props);
         this.board = props.board;
+        // TODO: Make this pull from queue
+        this.direction = TetraminoDirection.UP;
+        this.type = TetraminoType.L;
+    }
+    componentDidMount() {
+        const { direction, coords, type } = this;
+        this.setState({ direction, coords, type })
     }
     render() {
         if (this.state.type == TetraminoType.NONE) return null;
@@ -73,9 +83,9 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
             />
         })
     }
-    getTetraminoInfo = () => tetraminoInfo[this.state.type];
-    getPieceX = (xOffset: number) => this.state.coords.x + xOffset + this.getTetraminoInfo().cursorOffset.x;
-    getPieceY = (yOffset: number) => this.state.coords.y + yOffset + this.getTetraminoInfo().cursorOffset.y;
+    getTetraminoInfo = () => tetraminoInfo[this.type];
+    getPieceX = (xOffset: number) => this.coords.x + xOffset + this.getTetraminoInfo().cursorOffset.x;
+    getPieceY = (yOffset: number) => this.coords.y + yOffset + this.getTetraminoInfo().cursorOffset.y;
 
     // Control methods
     // Move -> returns a boolean based on execution being successful
@@ -83,10 +93,13 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
     moveLeft = () => this.move(-1)
     moveDown = () => this.move(0, -1)
     hardDrop = () => {
-        if (!this.move(0, -1, this.hardDrop)) this.place();
-        return true;
+        for (let i = 0; i < 100; i++) {
+            if (!this.move(0, -1, true)) break;
+        }
+        this.setState(() => ({ coords: this.coords }));
+        this.place();
     }
-    move = (deltaX = 0, deltaY = 0, callback?: (() => void) | undefined): boolean => {
+    move = (deltaX = 0, deltaY = 0, isCycled = false): boolean => {
         for (const offset of this.getTetraminoInfo().pieceOffsets) {
             const x = this.getPieceX(offset.x + deltaX);
             const y = this.getPieceY(offset.y + deltaY);
@@ -95,7 +108,8 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
             const destination = this.board.cells[y]?.[x]
             if (destination.current?.state.isOccupied) return false;
         }
-        this.setState(({ coords: { x, y } }) => ({ coords: { x: x + deltaX, y: y + deltaY } }), callback);
+        this.coords = { x: this.coords.x + deltaX, y: this.coords.y + deltaY }
+        if (!isCycled) this.setState(() => ({ coords: this.coords }));
         return true;
     }
 
@@ -105,6 +119,7 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
             const thing = this.board.cells[this.getPieceY(offset.y)][this.getPieceX(offset.x)];
             const current = thing.current;
             if (!current) continue;
+            current.isOccupied = true;
             current.setState({ isOccupied: true, color: this.getTetraminoInfo().color })
         }
         // TODO: Add snippet for checking lines cleared from the board
@@ -115,6 +130,8 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
         // TODO: make it pull from the queue
         const enumValues = Object.values(TetraminoType);
         const randomEnum = enumValues[Math.floor(Math.random() * (enumValues.length - 1))];
-        this.setState({ type: randomEnum, coords: { x: 4, y: 19 } });
+        this.type = randomEnum;
+        this.coords = { x: 4, y: 19 };
+        this.setState({ type: this.type, coords: this.coords });
     }
 }

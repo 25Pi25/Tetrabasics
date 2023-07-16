@@ -59,13 +59,14 @@ interface BoardCellState {
 class BoardCell extends Component<BoardCellProps, BoardCellState> {
     board: Board;
     coords: Coordinate;
+    isOccupied = false;
     state = {
         color: TetraColor.NONE,
         isOccupied: false
     }
     constructor(props: BoardCellProps) {
         super(props);
-        const { board, coords, color, isOccupied } = props;
+        const { board, coords } = props;
         this.board = board;
         this.coords = coords;
     }
