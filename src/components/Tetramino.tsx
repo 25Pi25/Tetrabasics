@@ -6,10 +6,11 @@ import { Component, Fragment } from 'react';
 import { Board } from './Board';
 
 interface TetraminoDisplayProps {
-    type: TetraminoType;
+    type?: TetraminoType;
     width?: number;
     height?: number;
     scale?: number;
+    overrideColor?: TetraColor;
 }
 
 export interface Tetramino {
@@ -19,15 +20,14 @@ export interface Tetramino {
 }
 
 // Used for the hold/next queue to display pieces that don't interact with the board, has a scalable canvas
-export default function TetraminoDisplay({ type, width = 125, height = 125, scale = 1 }: TetraminoDisplayProps) {
-
+export default function TetraminoDisplay({ type = TetraminoType.NONE, width = 125, height = 125, scale = 1, overrideColor }: TetraminoDisplayProps) {
     scale = scale * Math.min(width, height) / 120;
     const middleY = type == TetraminoType.O ? 0 : 0.5;
     const { pieceOffsets, color } = tetraminoInfo[type];
     return <Stage width={width} height={height}>
         {type != TetraminoType.NONE && pieceOffsets.map((offset, i) => {
             return <Sprite
-                texture={getTexture(color)}
+                texture={overrideColor != null ? getTexture(overrideColor) : getTexture(color)}
                 scale={new Point(scale, scale)}
                 x={scale * ((offset.x * 30) - 15) + width / 2}
                 y={scale * ((offset.y - middleY) * -30 - 15) + height / 2}
@@ -48,13 +48,13 @@ interface ActiveTetraminoState {
 }
 export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetraminoState> {
     board: Board;
-    direction: TetraminoDirection;
+    direction: TetraminoDirection = TetraminoDirection.UP;
     coords: Coordinate = { x: 4, y: 19 };
-    type: TetraminoType;
+    type: TetraminoType = TetraminoType.NONE;
     state: ActiveTetraminoState = {
-        direction: TetraminoDirection.UP,
-        coords: { x: 4, y: 19 },
-        type: TetraminoType.NONE
+        direction: this.direction,
+        coords: this.coords,
+        type: this.type
     };
 
     constructor(props: ActiveTetraminoProps) {
@@ -62,9 +62,10 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
         this.board = props.board;
         // TODO: Make this pull from queue
         this.direction = TetraminoDirection.UP;
-        this.type = TetraminoType.T;
+        this.type = TetraminoType.NONE;
     }
     componentDidMount() {
+        this.getNextPiece();
         const { direction, coords, type } = this;
         this.setState({ direction, coords, type })
     }
@@ -73,25 +74,24 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
         const { pieceOffsets, color } = this.getTetraminoInfo();
         const num = this.getDistanceFromLowestPoint();
         const pieceCoords = pieceOffsets.map(offset => this.getPieceCoords(offset))
-        return pieceCoords.map(({ x, y }, i) => {
-            return <Fragment key={i}>
-                <Sprite
-                    texture={getTexture(TetraColor.GHOST)}
-                    scale={new Point(Board.cellSize / 30, Board.cellSize / 30)}
-                    alpha={pieceCoords.some(coord => coord.x == x && coord.y == y - num) ? 0 : 1}
-                    x={Board.cellSize * x}
-                    y={Board.cellSize * (this.board.height - (Board.matrixBuffer - Board.matrixVisible + 1) - y + num)}
-                    roundPixels={true}
-                />
-                <Sprite
-                    texture={getTexture(color)}
-                    scale={new Point(Board.cellSize / 30, Board.cellSize / 30)}
-                    x={Board.cellSize * x}
-                    y={Board.cellSize * (this.board.height - (Board.matrixBuffer - Board.matrixVisible + 1) - y)}
-                    roundPixels={true}
-                />
-            </Fragment>
-        })
+        return pieceCoords.map(({ x, y }, i) => <Fragment key={i}>
+            <Sprite
+                texture={getTexture(TetraColor.GHOST)}
+                scale={new Point(Board.cellSize / 30, Board.cellSize / 30)}
+                alpha={pieceCoords.some(coord => coord.x == x && coord.y == y - num) ? 0 : 0.5}
+                x={Board.cellSize * x}
+                y={Board.cellSize * (this.board.height - (Board.matrixBuffer - Board.matrixVisible + 1) - y + num)}
+                roundPixels={true}
+            />
+            <Sprite
+                texture={getTexture(color)}
+                scale={new Point(Board.cellSize / 30, Board.cellSize / 30)}
+                x={Board.cellSize * x}
+                y={Board.cellSize * (this.board.height - (Board.matrixBuffer - Board.matrixVisible + 1) - y)}
+                roundPixels={true}
+            />
+        </Fragment>
+        )
     }
     getTetraminoInfo = () => tetraminoInfo[this.type];
     // Gets the absolute x/y position on the board for a specific piece
@@ -117,12 +117,12 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
     moveRight = () => this.move(1)
     moveLeft = () => this.move(-1)
     moveDown = () => this.move(0, -1)
-    hardDrop() {
+    hardDrop(lock = true) {
         for (let i = 0; i < 100; i++) {
             if (!this.move(0, -1, true)) break;
         }
         this.setState(() => ({ coords: this.coords }));
-        this.place();
+        if (lock) this.place();
     }
     move(deltaX = 0, deltaY = 0, isCycled = false): boolean {
         for (const offset of this.getTetraminoInfo().pieceOffsets) {
@@ -162,6 +162,7 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
         this.setState({ direction: this.direction })
     }
 
+
     // Place -> idk
     place() {
         for (const offset of this.getTetraminoInfo().pieceOffsets) {
@@ -170,16 +171,30 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
             if (!cellTarget) continue;
             cellTarget.isOccupied = true;
             cellTarget.color = this.getTetraminoInfo().color;
-            this.board.setState(prevState => ({ ...prevState, cells: this.board.cells }));
+            this.board.hold.used = false;
+            this.board.setState(({ cells: this.board.cells, hold: this.board.hold }));
         }
         this.board.updateClearedLines();
         this.getNextPiece()
     }
-    getNextPiece() {
-        // TODO: make it pull from the queue
-        const enumValues = Object.values(TetraminoType);
-        const randomEnum = enumValues[Math.floor(Math.random() * (enumValues.length - 1))];
-        this.type = randomEnum;
+
+    hold = () => this.getNextPiece(true);
+    getNextPiece(getHold = false) {
+        if (getHold && this.board.hold.used) return;
+        const holdType = this.board.hold.type;
+        if (getHold) {
+            this.board.hold = { type: this.type, used: true };
+            this.board.setState({ hold: this.board.hold })
+        }
+
+        if (!getHold || holdType == TetraminoType.NONE) {
+            const nextTetramino = this.board.next.shift();
+            this.board.updateNext();
+            this.type = nextTetramino ?? TetraminoType.NONE;
+        } else {
+            this.type = holdType;
+        }
+
         this.direction = TetraminoDirection.UP;
         this.coords = { x: 4, y: 19 };
         const { type, direction, coords } = this;

@@ -11,7 +11,9 @@ export enum TetraColor {
     PURPLE = 6,
     GHOST = 7,
     GARBAGE = 8,
-    UNCLEARABLE = 11
+    HELD = 9,
+    UNCLEARABLE = 10,
+    WARNING = 11
 }
 
 export enum TetraminoType {
@@ -49,10 +51,10 @@ export const mainKickTable: Record<TetraminoDirection, WallKicks> = {
     },
     [TetraminoDirection.RIGHT]: {
         cw: [{ x: 1, y: 0 }, { x: 1, y: -1 }, { x: 0, y: 2 }, { x: 1, y: 2 }],
-        ccw: [{ x: 1, y: 0 }, { x: 1, y: -1 }, { x: 0, y: -2 }, { x: 1, y: 2 }]
+        ccw: [{ x: 1, y: 0 }, { x: 1, y: -1 }, { x: 0, y: 2 }, { x: 1, y: 2 }]
     },
     [TetraminoDirection.DOWN]: {
-        cw: [{ x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: -2 }, { x: -1, y: -2 }],
+        cw: [{ x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: -2 }, { x: 1, y: -2 }],
         ccw: [{ x: -1, y: 0 }, { x: -1, y: 1 }, { x: 0, y: -2 }, { x: -1, y: -2 }]
     },
     [TetraminoDirection.LEFT]: {
@@ -76,14 +78,14 @@ export const iKickTable: Record<TetraminoDirection, WallKicks> = {
     },
     [TetraminoDirection.LEFT]: {
         cw: [{ x: 1, y: 0 }, { x: -2, y: 0 }, { x: 1, y: -2 }, { x: -2, y: 1 }],
-        ccw: [{ x: -2, y: 0 }, { x: -1, y: 0 }, { x: 2, y: 1 }, { x: -1, y: -2 }]
+        ccw: [{ x: -2, y: 0 }, { x: 1, y: 0 }, { x: -2, y: -1 }, { x: 1, y: 2 }]
     }
 }
 
 export const flipKickTable: Record<TetraminoDirection, Coordinate[]> = {
-    [TetraminoDirection.UP]: [{ x: 0, y: 0 }, { x: 1, y: 1 }, { x: -1, y: 1 }, { x: 1, y: 0 }, { x: -1, y: 0 }],
+    [TetraminoDirection.UP]: [{ x: 0, y: 1 }, { x: 1, y: 1 }, { x: -1, y: 1 }, { x: 1, y: 0 }, { x: -1, y: 0 }],
     [TetraminoDirection.RIGHT]: [{ x: 1, y: 0 }, { x: 1, y: 2 }, { x: 1, y: 1 }, { x: 0, y: -2 }, { x: 0, y: 1 }],
-    [TetraminoDirection.DOWN]: [{ x: 0, y: 0 }, { x: -1, y: -1 }, { x: 1, y: -1 }, { x: -1, y: 0 }, { x: 1, y: 0 }],
+    [TetraminoDirection.DOWN]: [{ x: 0, y: -1 }, { x: -1, y: -1 }, { x: 1, y: -1 }, { x: -1, y: 0 }, { x: 1, y: 0 }],
     [TetraminoDirection.LEFT]: [{ x: -1, y: 0 }, { x: -1, y: 2 }, { x: -1, y: 1 }, { x: 0, y: -2 }, { x: 0, y: 1 }]
 }
 
