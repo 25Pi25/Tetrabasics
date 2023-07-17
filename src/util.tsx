@@ -1,22 +1,23 @@
 import { BaseTexture, Rectangle, SCALE_MODES, Texture } from 'pixi.js';
-import { TetraColor, TetraminoDirection } from './types';
+import { Coordinate, TetraColor, TetraminoDirection } from './types';
 import grid from "./assets/gloss.png";
 import empty from "./assets/empty.png";
+import { Board } from './components/Board';
 
-export function getTexture(color: TetraColor) {
+export function getTexture(color: TetraColor, y = 0) {
     const texture = color == TetraColor.NONE ?
-        new Texture(BaseTexture.from(empty)) :
+        y > Board.matrixBuffer - 1 ? Texture.EMPTY : new Texture(BaseTexture.from(empty)) :
         new Texture(BaseTexture.from(grid), new Rectangle(31 * color, 0, 30, 30))
     texture.baseTexture.scaleMode = SCALE_MODES.NEAREST;
     return texture;
 }
 
-export function getPieceOffset(direction: TetraminoDirection, xOffset: number, yOffset: number): [number, number] {
+export function getDirectionOffset(direction: TetraminoDirection, { x, y }: Coordinate): [number, number] {
     const directionToPieceOffset: Record<TetraminoDirection, [number, number]> = {
-        [TetraminoDirection.UP]: [xOffset, yOffset],
-        [TetraminoDirection.RIGHT]: [yOffset * -1, xOffset],
-        [TetraminoDirection.DOWN]: [xOffset * -1, yOffset * -1],
-        [TetraminoDirection.LEFT]: [yOffset, xOffset]
+        [TetraminoDirection.UP]: [x, y],
+        [TetraminoDirection.RIGHT]: [y, x * -1],
+        [TetraminoDirection.DOWN]: [x * -1, y * -1],
+        [TetraminoDirection.LEFT]: [y * -1, x]
     };
     return directionToPieceOffset[direction];
 }

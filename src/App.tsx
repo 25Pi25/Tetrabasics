@@ -8,11 +8,13 @@ import { TetraminoType } from './types.tsx'
 function App() {
   const boardRef = useRef<Board | null>(null);
   useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
+    function handleKey(e: KeyboardEvent): void {
       if (e.key == "a") boardRef.current?.activeTetramino.current?.moveLeft()
       if (e.key == "d") boardRef.current?.activeTetramino.current?.moveRight()
       if (e.key == "s") boardRef.current?.activeTetramino.current?.moveDown()
       if (e.key == "w") boardRef.current?.activeTetramino.current?.hardDrop()
+      if (e.key == "3") boardRef.current?.activeTetramino.current?.rotateRight()
+      if (e.key == "2") boardRef.current?.activeTetramino.current?.rotateLeft()
     }
     addEventListener("keydown", handleKey);
     return () => removeEventListener("keydown", handleKey)

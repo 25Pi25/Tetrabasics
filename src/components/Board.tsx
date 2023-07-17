@@ -3,81 +3,121 @@ import { Stage, Sprite } from '@pixi/react';
 
 import './Board.css';
 import { Component, RefObject, createRef } from 'react';
-import { Coordinate, TetraColor, TetraminoDirection, } from '../types';
+import { Coordinate, TetraColor, TetraminoDirection, TetraminoType, } from '../types';
 import { ActiveTetramino, Tetramino } from './Tetramino';
 import { getTexture } from '../util';
+
+interface BoardCellInfo {
+    color: TetraColor;
+    isOccupied: boolean;
+}
 
 type BoardProps = {
     width?: number,
     height?: number,
     map?: string,
     queue?: string
-    cellSize?: number
 }
-export class Board extends Component<BoardProps> {
-    static cellSize: number;
+type BoardState = {
+    cells: BoardCellInfo[][];
+}
+export class Board extends Component<BoardProps, BoardState> {
+    static cellSize = 30;
+    static matrixBuffer = 20;
+    static matrixVisible = 3;
     activeTetramino: RefObject<ActiveTetramino>;
     width: number;
     height: number;
-    cells: RefObject<BoardCell>[][];
+    cells: BoardCellInfo[][];
     hold: { tetramino: Tetramino | null, holdUsed: boolean };
-    queue: (Tetramino | null)[]
-
+    queue: TetraminoType[]
+    state: BoardState = { cells: [[]] }
     constructor(props: BoardProps) {
         super(props);
-        const { width = 10, height = 20, map, queue, cellSize = 35 } = props;
+        const { width = 10, height = 20, map, queue } = props;
         this.activeTetramino = createRef<ActiveTetramino>()
         this.width = Math.min(Math.max(4, width), 20);
-        this.height = Math.min(Math.max(4, height), 40) + 20;
+        this.height = Math.min(Math.max(4, height), 40) + Board.matrixBuffer;
         // TODO: Add functionality for queue/hold
         this.hold = { tetramino: null, holdUsed: false };
-        this.queue = [null];
-        Board.cellSize = cellSize;
+        this.queue = [TetraminoType.NONE];
         this.cells = Array.from({ length: this.height }, () =>
-            Array.from({ length: this.width }, () => createRef<BoardCell>()));
+            Array.from({ length: this.width }, () => ({
+                color: TetraColor.NONE,
+                isOccupied: false
+            })));
+    }
+    componentDidMount() {
+        this.setState({ cells: this.cells })
     }
     render() {
-        return <Stage className='board' width={this.width * Board.cellSize} height={(this.height - 20) * Board.cellSize}>
-            {Array.from({ length: (this.height - 20) }, (_, y) =>
-                Array.from({ length: this.width }, (_, x) =>
-                    <BoardCell board={this} coords={{ x, y }} key={`${x} ${y}`} ref={this.cells[y][x]} />))}
+        const renderedHeight = this.height - Board.matrixBuffer + Board.matrixVisible;
+        return <Stage className='board'
+            width={this.width * Board.cellSize}
+            height={renderedHeight * Board.cellSize}>
+            {this.cells
+                .filter((_, i) => i <= renderedHeight)
+                .map((arr, y) => arr.map(({ color, isOccupied }, x) => {
+                    return <BoardCell board={this} coords={{ x, y }} isOccupied={isOccupied} color={color} key={`${x} ${y}`} />;
+                }))}
             <ActiveTetramino board={this} ref={this.activeTetramino} />
         </Stage>
+    }
+
+    // Control methods
+    // Updates the board to clear any lines that were potentially filled
+    updateClearedLines = () => {
+        for (let i = 0; i < this.cells.length; i++) {
+            const cellRow = this.cells[i];
+            if (cellRow.some(cell => !cell.isOccupied)) continue;
+            this.cells.splice(i, 1)
+            this.cells.push(Array.from({ length: this.width }, () => ({
+                color: TetraColor.NONE,
+                isOccupied: false
+            })));
+            this.setState({ cells: this.cells })
+        }
     }
 }
 
 interface BoardCellProps {
     board: Board;
     coords: Coordinate;
-    color?: TetraColor;
-    isOccupied?: boolean;
+    isOccupied: boolean;
+    color: TetraColor;
 }
 interface BoardCellState {
-    color: TetraColor;
+    coords: Coordinate;
     isOccupied: boolean;
+    color: TetraColor;
 }
 class BoardCell extends Component<BoardCellProps, BoardCellState> {
     board: Board;
-    coords: Coordinate;
-    isOccupied = false;
-    state = {
-        color: TetraColor.NONE,
-        isOccupied: false
-    }
+    state: BoardCellState;
     constructor(props: BoardCellProps) {
         super(props);
-        const { board, coords } = props;
+        const { board, coords, isOccupied, color } = props;
         this.board = board;
-        this.coords = coords;
+        this.state = { coords, isOccupied, color };
+    }
+    componentDidUpdate(prevProps: BoardCellProps) {
+        if (this.props.coords === prevProps.coords &&
+            this.props.isOccupied === prevProps.isOccupied &&
+            this.props.color === prevProps.color) return;
+        this.setState({
+            coords: this.props.coords,
+            isOccupied: this.props.isOccupied,
+            color: this.props.color,
+        });
     }
     render() {
         return <Sprite
-            texture={getTexture(this.state.color)}
+            texture={getTexture(this.state.color, this.state.coords.y)}
             scale={new Point(Board.cellSize / 30, Board.cellSize / 30)}
             alpha={this.state.isOccupied ? 1 : 0.5}
-            x={this.coords.x * Board.cellSize}
-            y={Board.cellSize * (this.board.height - 21 - this.coords.y)}
-            key={`cell ${this.coords.x} ${this.coords.y}`}
+            x={this.state.coords.x * Board.cellSize}
+            y={Board.cellSize * (this.board.height - (Board.matrixBuffer - Board.matrixVisible + 1) - this.state.coords.y)}
+            key={`cell ${this.state.coords.x} ${this.state.coords.y}`}
         />
     }
 }

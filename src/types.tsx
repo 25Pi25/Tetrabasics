@@ -32,9 +32,9 @@ export interface Coordinate {
 
 export enum TetraminoDirection {
     UP,
+    RIGHT,
     DOWN,
-    LEFT,
-    RIGHT
+    LEFT
 }
 
 export interface WallKicks {

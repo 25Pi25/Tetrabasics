@@ -1,7 +1,7 @@
 import { Sprite, Stage } from '@pixi/react';
 import { Coordinate, TetraColor, TetraminoDirection, TetraminoType, WallKicks, tetraminoInfo } from '../types'
 import { Point } from 'pixi.js';
-import { getPieceOffset, getTexture } from '../util';
+import { getDirectionOffset, getTexture } from '../util';
 import { Component } from 'react';
 import { Board } from './Board';
 
@@ -48,13 +48,13 @@ interface ActiveTetraminoState {
 }
 export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetraminoState> {
     board: Board;
-    direction: TetraminoDirection.UP;
+    direction: TetraminoDirection;
     coords: Coordinate = { x: 4, y: 19 };
     type: TetraminoType;
     state: ActiveTetraminoState = {
         direction: TetraminoDirection.UP,
         coords: { x: 4, y: 19 },
-        type: TetraminoType.J
+        type: TetraminoType.NONE
     };
 
     constructor(props: ActiveTetraminoProps) {
@@ -62,7 +62,7 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
         this.board = props.board;
         // TODO: Make this pull from queue
         this.direction = TetraminoDirection.UP;
-        this.type = TetraminoType.L;
+        this.type = TetraminoType.T;
     }
     componentDidMount() {
         const { direction, coords, type } = this;
@@ -72,20 +72,26 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
         if (this.state.type == TetraminoType.NONE) return null;
         const { pieceOffsets, color } = this.getTetraminoInfo()
         return pieceOffsets.map((offset, i) => {
-            const [xOffset, yOffset] = getPieceOffset(this.state.direction, offset.x, offset.y)
+            const [x, y] = this.getPieceCoords(offset)
             return <Sprite
                 texture={getTexture(color)}
                 scale={new Point(Board.cellSize / 30, Board.cellSize / 30)}
-                x={Board.cellSize * this.getPieceX(xOffset)}
-                y={Board.cellSize * (this.board.height - 21 - this.getPieceY(yOffset))}
+                x={Board.cellSize * x}
+                y={Board.cellSize * (this.board.height - (Board.matrixBuffer - Board.matrixVisible + 1) - y)}
                 key={`cell ${i}`}
                 roundPixels={true}
             />
         })
     }
     getTetraminoInfo = () => tetraminoInfo[this.type];
-    getPieceX = (xOffset: number) => this.coords.x + xOffset + this.getTetraminoInfo().cursorOffset.x;
-    getPieceY = (yOffset: number) => this.coords.y + yOffset + this.getTetraminoInfo().cursorOffset.y;
+    // Gets the absolute x/y position on the board for a specific piece
+    getPieceCoords(offset: Coordinate): [number, number] {
+        const [xOffset, yOffset] = getDirectionOffset(this.direction, offset);
+        return [
+            this.coords.x + xOffset + this.getTetraminoInfo().cursorOffset.x,
+            this.coords.y + yOffset + this.getTetraminoInfo().cursorOffset.y
+        ]
+    }
 
     // Control methods
     // Move -> returns a boolean based on execution being successful
@@ -99,39 +105,52 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
         this.setState(() => ({ coords: this.coords }));
         this.place();
     }
-    move = (deltaX = 0, deltaY = 0, isCycled = false): boolean => {
+    move(deltaX = 0, deltaY = 0, isCycled = false): boolean {
         for (const offset of this.getTetraminoInfo().pieceOffsets) {
-            const x = this.getPieceX(offset.x + deltaX);
-            const y = this.getPieceY(offset.y + deltaY);
+            const [initialX, initialY] = this.getPieceCoords(offset);
+            const [x, y] = [initialX + deltaX, initialY + deltaY]
             if (x < 0 || y < 0) return false;
             if (x >= this.board.width || y >= this.board.height) return false;
             const destination = this.board.cells[y]?.[x]
-            if (destination.current?.state.isOccupied) return false;
+            if (destination.isOccupied) return false;
         }
         this.coords = { x: this.coords.x + deltaX, y: this.coords.y + deltaY }
         if (!isCycled) this.setState(() => ({ coords: this.coords }));
         return true;
     }
 
+    // Rotate -> idk
+    rotateRight = () => this.rotate(1)
+    rotateLeft = () => this.rotate(-1)
+    rotate(direction: number) {
+        const oldDirection = this.direction
+        const newDirection: TetraminoDirection = (this.direction + direction + 4) % 4;
+        this.direction = newDirection;
+        this.setState({ direction: this.direction })
+        if (!this.move(0, 0)) this.direction = oldDirection;
+    }
+
     // Place -> idk
     place = () => {
         for (const offset of this.getTetraminoInfo().pieceOffsets) {
-            const thing = this.board.cells[this.getPieceY(offset.y)][this.getPieceX(offset.x)];
-            const current = thing.current;
-            if (!current) continue;
-            current.isOccupied = true;
-            current.setState({ isOccupied: true, color: this.getTetraminoInfo().color })
-        }
-        // TODO: Add snippet for checking lines cleared from the board
-        this.getNextPiece()
+            const [x, y] = this.getPieceCoords(offset);
+            const cellTarget = this.board.cells[y][x];
+            if (!cellTarget) continue;
+            cellTarget.isOccupied = true;
+            cellTarget.color = this.getTetraminoInfo().color;
+            this.board.setState(prevState => ({ ...prevState, cells: this.board.cells }));
     }
-
-    getNextPiece = () => {
-        // TODO: make it pull from the queue
-        const enumValues = Object.values(TetraminoType);
-        const randomEnum = enumValues[Math.floor(Math.random() * (enumValues.length - 1))];
-        this.type = randomEnum;
-        this.coords = { x: 4, y: 19 };
-        this.setState({ type: this.type, coords: this.coords });
+        this.board.updateClearedLines();
+this.getNextPiece()
     }
+getNextPiece = () => {
+    // TODO: make it pull from the queue
+    const enumValues = Object.values(TetraminoType);
+    const randomEnum = enumValues[Math.floor(Math.random() * (enumValues.length - 1))];
+    this.type = randomEnum;
+    this.direction = TetraminoDirection.UP;
+    this.coords = { x: 4, y: 19 };
+    const { type, direction, coords } = this;
+    this.setState({ type, direction, coords });
+}
 }
