@@ -1,9 +1,9 @@
-import { Rectangle, Texture, Point, BaseTexture } from 'pixi.js';
+import { Point } from 'pixi.js';
 import { Stage, Sprite } from '@pixi/react';
 
 import './Board.css';
-import { Component, RefObject, createRef } from 'react';
-import { Coordinate, TetraColor, TetraminoDirection, TetraminoType, } from '../types';
+import { Component, RefObject, createRef, useEffect, useState } from 'react';
+import { Coordinate, TetraColor, TetraminoType } from '../types';
 import { ActiveTetramino, Tetramino } from './Tetramino';
 import { getTexture } from '../util';
 
@@ -76,6 +76,7 @@ export class Board extends Component<BoardProps, BoardState> {
                 isOccupied: false
             })));
             this.setState({ cells: this.cells })
+            i--;
         }
     }
 }
@@ -91,34 +92,19 @@ interface BoardCellState {
     isOccupied: boolean;
     color: TetraColor;
 }
-class BoardCell extends Component<BoardCellProps, BoardCellState> {
-    board: Board;
-    state: BoardCellState;
-    constructor(props: BoardCellProps) {
-        super(props);
-        const { board, coords, isOccupied, color } = props;
-        this.board = board;
-        this.state = { coords, isOccupied, color };
-    }
-    componentDidUpdate(prevProps: BoardCellProps) {
-        if (this.props.coords === prevProps.coords &&
-            this.props.isOccupied === prevProps.isOccupied &&
-            this.props.color === prevProps.color) return;
-        this.setState({
-            coords: this.props.coords,
-            isOccupied: this.props.isOccupied,
-            color: this.props.color,
-        });
-    }
-    render() {
-        return <Sprite
-            texture={getTexture(this.state.color, this.state.coords.y)}
-            scale={new Point(Board.cellSize / 30, Board.cellSize / 30)}
-            alpha={this.state.isOccupied ? 1 : 0.5}
-            x={this.state.coords.x * Board.cellSize}
-            y={Board.cellSize * (this.board.height - (Board.matrixBuffer - Board.matrixVisible + 1) - this.state.coords.y)}
-            key={`cell ${this.state.coords.x} ${this.state.coords.y}`}
-        />
-    }
-}
+function BoardCell({ board, coords, isOccupied, color }: BoardCellProps) {
+    const [state, setState] = useState<BoardCellState>({ coords, isOccupied, color });
 
+    useEffect(() => {
+        setState({ coords, isOccupied, color });
+    }, [coords, isOccupied, color]);
+
+    return <Sprite
+        texture={getTexture(state.color, state.coords.y)}
+        scale={new Point(Board.cellSize / 30, Board.cellSize / 30)}
+        alpha={state.isOccupied ? 1 : 0.5}
+        x={state.coords.x * Board.cellSize}
+        y={Board.cellSize * (board.height - (Board.matrixBuffer - Board.matrixVisible + 1) - state.coords.y)}
+        key={`cell ${state.coords.x} ${state.coords.y}`}
+    />
+}

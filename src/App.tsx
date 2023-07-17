@@ -15,6 +15,8 @@ function App() {
       if (e.key == "w") boardRef.current?.activeTetramino.current?.hardDrop()
       if (e.key == "3") boardRef.current?.activeTetramino.current?.rotateRight()
       if (e.key == "2") boardRef.current?.activeTetramino.current?.rotateLeft()
+      if (e.key == "5") boardRef.current?.activeTetramino.current?.rotate180()
+      // if (e.key == "6") boardRef.current?.activeTetramino.current?.hold()
     }
     addEventListener("keydown", handleKey);
     return () => removeEventListener("keydown", handleKey)

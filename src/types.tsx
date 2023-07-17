@@ -58,10 +58,10 @@ export const mainKickTable: Record<TetraminoDirection, WallKicks> = {
     [TetraminoDirection.LEFT]: {
         cw: [{ x: -1, y: 0 }, { x: -1, y: -1 }, { x: 0, y: 2 }, { x: -1, y: 2 }],
         ccw: [{ x: -1, y: 0 }, { x: -1, y: -1 }, { x: 0, y: 2 }, { x: -1, y: 2 }]
-    },
+    }
 }
 
-export const IKickTable: Record<TetraminoDirection, WallKicks> = {
+export const iKickTable: Record<TetraminoDirection, WallKicks> = {
     [TetraminoDirection.UP]: {
         cw: [{ x: -2, y: 0 }, { x: 1, y: 0 }, { x: -2, y: -1 }, { x: 1, y: 2 }],
         ccw: [{ x: -1, y: 0 }, { x: 2, y: 0 }, { x: -1, y: -2 }, { x: 2, y: -1 }]
@@ -77,7 +77,14 @@ export const IKickTable: Record<TetraminoDirection, WallKicks> = {
     [TetraminoDirection.LEFT]: {
         cw: [{ x: 1, y: 0 }, { x: -2, y: 0 }, { x: 1, y: -2 }, { x: -2, y: 1 }],
         ccw: [{ x: -2, y: 0 }, { x: -1, y: 0 }, { x: 2, y: 1 }, { x: -1, y: -2 }]
-    },
+    }
+}
+
+export const flipKickTable: Record<TetraminoDirection, Coordinate[]> = {
+    [TetraminoDirection.UP]: [{ x: 0, y: 0 }, { x: 1, y: 1 }, { x: -1, y: 1 }, { x: 1, y: 0 }, { x: -1, y: 0 }],
+    [TetraminoDirection.RIGHT]: [{ x: 1, y: 0 }, { x: 1, y: 2 }, { x: 1, y: 1 }, { x: 0, y: -2 }, { x: 0, y: 1 }],
+    [TetraminoDirection.DOWN]: [{ x: 0, y: 0 }, { x: -1, y: -1 }, { x: 1, y: -1 }, { x: -1, y: 0 }, { x: 1, y: 0 }],
+    [TetraminoDirection.LEFT]: [{ x: -1, y: 0 }, { x: -1, y: 2 }, { x: -1, y: 1 }, { x: 0, y: -2 }, { x: 0, y: 1 }]
 }
 
 export const tetraminoInfo: Record<TetraminoType, Tetramino> = {
@@ -120,5 +127,5 @@ export const tetraminoInfo: Record<TetraminoType, Tetramino> = {
         color: TetraColor.NONE,
         cursorOffset: { x: 0, y: 0 },
         pieceOffsets: []
-    },
+    }
 }
