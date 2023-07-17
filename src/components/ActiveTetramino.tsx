@@ -1,43 +1,15 @@
-import { Sprite, Stage } from '@pixi/react';
+import { Sprite } from '@pixi/react';
 import { Coordinate, TetraColor, TetraminoDirection, TetraminoType, flipKickTable, iKickTable, mainKickTable, tetraminoInfo } from '../types'
 import { Point } from 'pixi.js';
 import { getDirectionOffset, getTexture } from '../util';
 import { Component, Fragment } from 'react';
 import { Board } from './Board';
 
-interface TetraminoDisplayProps {
-    type?: TetraminoType;
-    width?: number;
-    height?: number;
-    scale?: number;
-    overrideColor?: TetraColor;
+enum TSpinType {
+    NONE,
+    TSPIN,
+    MINI
 }
-
-export interface Tetramino {
-    color: TetraColor;
-    cursorOffset: Coordinate;
-    pieceOffsets: Coordinate[];
-}
-
-// Used for the hold/next queue to display pieces that don't interact with the board, has a scalable canvas
-export default function TetraminoDisplay({ type = TetraminoType.NONE, width = 125, height = 125, scale = 1, overrideColor }: TetraminoDisplayProps) {
-    scale = scale * Math.min(width, height) / 120;
-    const middleY = type == TetraminoType.O ? 0 : 0.5;
-    const { pieceOffsets, color } = tetraminoInfo[type];
-    return <Stage width={width} height={height}>
-        {type != TetraminoType.NONE && pieceOffsets.map((offset, i) => {
-            return <Sprite
-                texture={overrideColor != null ? getTexture(overrideColor) : getTexture(color)}
-                scale={new Point(scale, scale)}
-                x={scale * ((offset.x * 30) - 15) + width / 2}
-                y={scale * ((offset.y - middleY) * -30 - 15) + height / 2}
-                key={`display ${i}`}
-                roundPixels={true}
-            />
-        })}
-    </Stage>
-}
-
 interface ActiveTetraminoProps {
     board: Board;
 }
@@ -46,11 +18,12 @@ interface ActiveTetraminoState {
     coords: Coordinate;
     type: TetraminoType;
 }
-export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetraminoState> {
+export default class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetraminoState> {
     board: Board;
     direction: TetraminoDirection = TetraminoDirection.UP;
     coords: Coordinate = { x: 4, y: 19 };
     type: TetraminoType = TetraminoType.NONE;
+    tSpinType = TSpinType.NONE;
     state: ActiveTetraminoState = {
         direction: this.direction,
         coords: this.coords,
@@ -119,12 +92,12 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
     moveDown = () => this.move(0, -1)
     hardDrop(lock = true) {
         for (let i = 0; i < 100; i++) {
-            if (!this.move(0, -1, true)) break;
+            if (!this.move(0, -1, { isCycled: true })) break;
         }
         this.setState(() => ({ coords: this.coords }));
         if (lock) this.place();
     }
-    move(deltaX = 0, deltaY = 0, isCycled = false): boolean {
+    move(deltaX = 0, deltaY = 0, { isCycled = false, isRotation = false } = {}): boolean {
         for (const offset of this.getTetraminoInfo().pieceOffsets) {
             const { x: initialX, y: initialY } = this.getPieceCoords(offset);
             const [x, y] = [initialX + deltaX, initialY + deltaY]
@@ -133,9 +106,23 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
             const destination = this.board.cells[y]?.[x]
             if (destination.isOccupied) return false;
         }
+
         this.coords = { x: this.coords.x + deltaX, y: this.coords.y + deltaY }
         if (!isCycled) this.setState(() => ({ coords: this.coords }));
+        if (!isRotation) this.tSpinType = TSpinType.NONE;
         return true;
+    }
+
+    // First two pieces occupied are the blocks facing T. If it's not T obv there's no T-Spin
+    // If the amount of filled corners is less than 3 it is not a T-Spin
+    // If the front corners facing the T are filled OR the last rotation was kick 3/4 then it's a T-Spin, else mini
+    checkTSpin(kickIndex: number) {
+        if (this.type != TetraminoType.T) return TSpinType.NONE;
+        const piecesOccupied = [{ x: 1, y: 1 }, { x: -1, y: 1 }, { x: -1, y: -1 }, { x: 1, y: -1 }]
+            .map(x => getDirectionOffset(this.direction, x))
+            .map(([x, y]) => this.board.cells[this.coords.y + y]?.[this.coords.x + x]?.isOccupied ?? true);
+        return piecesOccupied.reduce((a, b) => a + (b ? 1 : 0), 0) < 3 ? TSpinType.NONE :
+            piecesOccupied[0] && piecesOccupied[1] || kickIndex >= 3 ? TSpinType.TSPIN : TSpinType.MINI
     }
 
     // Rotate -> idk
@@ -147,7 +134,10 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
         const newDirection: TetraminoDirection = (this.direction + direction + 4) % 4;
         this.direction = newDirection;
         this.setState({ direction: this.direction })
-        if (this.move(0, 0)) return;
+        if (this.move(0, 0, { isRotation: true })) {
+            this.tSpinType = this.checkTSpin(0);
+            return;
+        }
         let kickOffsets: Coordinate[];
         if (direction == 2) {
             kickOffsets = flipKickTable[oldDirection];
@@ -155,8 +145,12 @@ export class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetra
             const kickTable = this.type == TetraminoType.I ? iKickTable[oldDirection] : mainKickTable[oldDirection];
             kickOffsets = direction < 0 ? kickTable.ccw : kickTable.cw;
         }
-        for (const kickOffset of kickOffsets) {
-            if (this.move(kickOffset.x, kickOffset.y)) return;
+        for (let i = 0; i < kickOffsets.length; i++) {
+            const kickOffset = kickOffsets[i];
+            if (this.move(kickOffset.x, kickOffset.y, { isRotation: true })) {
+                this.tSpinType = this.checkTSpin(i + 1);
+                return;
+            }
         }
         this.direction = oldDirection;
         this.setState({ direction: this.direction })

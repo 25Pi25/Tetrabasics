@@ -1,5 +1,3 @@
-import { Tetramino } from './components/Tetramino'
-
 export enum TetraColor {
     NONE = -1,
     RED = 0,
@@ -89,6 +87,11 @@ export const flipKickTable: Record<TetraminoDirection, Coordinate[]> = {
     [TetraminoDirection.LEFT]: [{ x: -1, y: 0 }, { x: -1, y: 2 }, { x: -1, y: 1 }, { x: 0, y: -2 }, { x: 0, y: 1 }]
 }
 
+export interface Tetramino {
+    color: TetraColor;
+    cursorOffset: Coordinate;
+    pieceOffsets: Coordinate[];
+}
 export const tetraminoInfo: Record<TetraminoType, Tetramino> = {
     [TetraminoType.L]: {
         color: TetraColor.ORANGE,
