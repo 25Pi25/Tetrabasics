@@ -28,24 +28,22 @@ interface Command {
     args: ArgumentType[]
 }
 
+const argDefault: Record<string, ArgumentType> = {
+    dynamicNumber: { type: "dynamicNumber", value: { numberType: "number", value: 0 } },
+    equality: { type: "equality", value: Equality.EQUALS },
+    command: { type: "command", value: { type: "", args: [] } }
+}
 function getNewArgs(commandType: CommandType): ArgumentType[] {
+    const { dynamicNumber, equality, command } = argDefault;
     switch (commandType) {
         case "":
             return [];
         case "if":
-            return [
-                { type: "dynamicNumber", value: { numberType: "number", value: 0 } },
-                { type: "equality", value: Equality.EQUALS },
-                { type: "dynamicNumber", value: { numberType: "number", value: 0 } },
-                { type: "command", value: { type: "", args: [] } }
-            ];
+            return [dynamicNumber, equality, dynamicNumber, command];
         case "function":
-            return [{ type: "dynamicNumber", value: { numberType: "number", value: 0 } }];
+            return [dynamicNumber];
         case "setVariable":
-            return [
-                { type: "dynamicNumber", value: { numberType: "number", value: 0 } },
-                { type: "dynamicNumber", value: { numberType: "number", value: 0 } }
-            ];
+            return [dynamicNumber, dynamicNumber];
         default:
             return [];
     }
