@@ -1,22 +1,47 @@
 import { Stage } from '@pixi/react';
 import './Board.css';
 import { Component, RefObject, createRef } from 'react';
-import { TetraColor, TetraminoType, tetraminoInfo } from '../types';
+import { TSpinType, TetraColor, TetraminoType, tetraminoInfo } from '../types';
 import ActiveTetramino from './ActiveTetramino';
 import TetraminoDisplay from './TetraminoDisplay';
 import BoardCell from './BoardCell';
+import DynamicContentComponent from './CommandEditor';
+
+// TODO: add finesse faults??
+interface BoardMeta {
+    pieces: number,
+    keys: number,
+    holds: number,
+    lines: number,
+    attack: number,
+    b2b: number,
+    time: number,
+    combo: number,
+    finesseFaults: number,
+    clears: {
+        single: number,
+        double: number,
+        triple: number,
+        quad: number,
+        tsm: number,
+        tss: number,
+        tsd: number,
+        tst: number,
+        allClear: number
+    }
+}
 
 interface BoardCellInfo {
     color: TetraColor;
     isOccupied: boolean;
 }
 
-type BoardProps = {
+interface BoardProps {
     width?: number,
     height?: number,
     map?: string,
 }
-type BoardState = {
+interface BoardState {
     cells: BoardCellInfo[][];
     next: TetraminoType[];
     hold: { type: TetraminoType, used: boolean }
@@ -30,6 +55,28 @@ export class Board extends Component<BoardProps, BoardState> {
     height: number;
     cells: BoardCellInfo[][] = [[]];
     map: string;
+    meta: BoardMeta = {
+        pieces: 0,
+        keys: 0,
+        holds: 0,
+        lines: 0,
+        attack: 0,
+        b2b: 0,
+        time: 0,
+        combo: 0,
+        finesseFaults: 0,
+        clears: {
+            single: 0,
+            double: 0,
+            triple: 0,
+            quad: 0,
+            tsm: 0,
+            tss: 0,
+            tsd: 0,
+            tst: 0,
+            allClear: 0
+        }
+    }
 
     hold: { type: TetraminoType, used: boolean } = { type: TetraminoType.NONE, used: false }
     next: TetraminoType[] = [];
@@ -51,11 +98,6 @@ export class Board extends Component<BoardProps, BoardState> {
         this.setState({ cells: this.cells });
         // TODO: Run conditional if the board disables new next pieces
         this.setMap(this.map);
-        this.updateNext();
-        this.setPaused(false);
-    }
-    componentWillUnmount() {
-        this.setPaused(true);
     }
     render() {
         const renderedHeight = this.height - Board.matrixBuffer + Board.matrixVisible;
@@ -76,13 +118,24 @@ export class Board extends Component<BoardProps, BoardState> {
                     return <TetraminoDisplay width={i ? 75 : 100} height={i ? 75 : 100} type={this.state.next[i]} key={i} />
                 })}
             </div>
+            <DynamicContentComponent />
         </div>
+    }
+    // Start game -> I mean this is pretty self-explanatory
+    startGame() {
+        this.setPaused(false);
+        this.updateNext();
+        const { current } = this.activeTetramino;
+        if (!current) return;
+        current.getNextPiece();
+        const { direction, coords, type } = current;
+        current.setState({ direction, coords, type })
     }
 
     // Input controls
     // Controls
     paused = true;
-    keyPresses: Partial<Record<string, number>> = {};
+    keyPresses: Set<string> = new Set<string>();
     setPaused(paused: boolean) {
         const isPaused = this.paused;
         this.paused = paused;
@@ -90,49 +143,68 @@ export class Board extends Component<BoardProps, BoardState> {
         if (isPaused && !paused) {
             addEventListener("keydown", this.handleKeyDown);
             addEventListener("keyup", this.handleKeyUp);
-            addEventListener("keypress", this.handlePress);
         } else if (paused) {
             removeEventListener("keydown", this.handleKeyDown);
             removeEventListener("keyup", this.handleKeyUp);
-            removeEventListener("keypress", this.handlePress);
+            this.keyPresses = new Set<string>();
         }
-        console.log(paused)
     }
     handleKeyDown = ({ key }: KeyboardEvent) => {
+        if (this.keyPresses.has(key)) return;
+        this.keyPresses.add(key);
+
         const ARR = 0;
         const DAS = 100;
         const SDF = -1;
         const activeMino = this.activeTetramino.current;
         const { controlEvents, controlEvents: { left, right } } = this;
         if (!activeMino) return;
-        if (key == 'a') {
-            if (left.das) return;
-            this.clearShiftRepeat(left);
-            this.clearShiftRepeat(right);
-            activeMino.moveLeft();
-            left.das = setTimeout(() => {
+        switch (key) {
+            case "a":
+                if (left.das) return;
+                this.clearShiftRepeat(left);
+                this.clearShiftRepeat(right);
                 activeMino.moveLeft();
-                left.delay = setInterval(() => !this.paused && activeMino.moveLeft(), ARR);
-            }, DAS);
-        }
-        if (key == 'd') {
-            if (right.das) return;
-            this.clearShiftRepeat(left);
-            this.clearShiftRepeat(right);
-            activeMino.moveRight();
-            right.das = setTimeout(() => {
+                left.das = setTimeout(() => {
+                    activeMino.moveLeft();
+                    left.delay = setInterval(() => !this.paused && activeMino.moveLeft(), ARR);
+                }, DAS);
+                break;
+            case "d":
+                if (right.das) return;
+                this.clearShiftRepeat(left);
+                this.clearShiftRepeat(right);
                 activeMino.moveRight();
-                right.delay = setInterval(() => !this.paused && activeMino.moveRight(), ARR);
-            }, DAS);
-        }
-        if (key == 's') {
-            if (controlEvents.down) return;
-            activeMino.moveDown();
-            if (SDF != -1) controlEvents.down = setInterval(() => !this.paused && activeMino.moveDown(), 500 / SDF);
-            else controlEvents.down = setInterval(() => !this.paused && activeMino.hardDrop(false), 0);
+                right.das = setTimeout(() => {
+                    activeMino.moveRight();
+                    right.delay = setInterval(() => !this.paused && activeMino.moveRight(), ARR);
+                }, DAS);
+                break;
+            case "s":
+                if (controlEvents.down) return;
+                activeMino.moveDown();
+                if (SDF != -1) controlEvents.down = setInterval(() => !this.paused && activeMino.moveDown(), 500 / SDF);
+                else controlEvents.down = setInterval(() => !this.paused && activeMino.hardDrop(false), 0);
+                break;
+            case "w":
+                this.activeTetramino.current?.hardDrop();
+                break;
+            case "3":
+                this.activeTetramino.current?.rotateRight();
+                break;
+            case "2":
+                this.activeTetramino.current?.rotateLeft();
+                break;
+            case "5":
+                this.activeTetramino.current?.rotate180();
+                break;
+            case "6":
+                this.activeTetramino.current?.hold();
+                break;
         }
     }
     handleKeyUp = ({ key }: KeyboardEvent) => {
+        this.keyPresses.delete(key);
         const { controlEvents, controlEvents: { left, right } } = this;
         if (key == 'a') this.clearShiftRepeat(left);
         if (key == 'd') this.clearShiftRepeat(right);
@@ -140,14 +212,6 @@ export class Board extends Component<BoardProps, BoardState> {
             if (controlEvents.down) clearInterval(controlEvents.down);
             controlEvents.down = null;
         }
-    }
-    handlePress = ({ key }: KeyboardEvent) => {
-        if (key == "w") this.activeTetramino.current?.hardDrop();
-        else if (key == "3") this.activeTetramino.current?.rotateRight();
-        else if (key == "2") this.activeTetramino.current?.rotateLeft();
-        else if (key == "5") this.activeTetramino.current?.rotate180();
-        else if (key == "6") this.activeTetramino.current?.hold();
-        else if (key == "r") this.resetBoard();
     }
     controlEvents: {
         left: { das: ReturnType<typeof setTimeout> | null, delay: ReturnType<typeof setInterval> | null },
@@ -212,11 +276,33 @@ export class Board extends Component<BoardProps, BoardState> {
         this.setState({ cells: this.cells, hold: this.hold });
     }
 
+    injectGarbage(rows = 1, cheesePercent = 100) {
+        this.cells.splice(this.cells.length - rows, rows);
+        const newCells = Array.from({ length: rows }, () =>
+            Array.from({ length: this.width }, () => ({
+                color: TetraColor.GARBAGE,
+                isOccupied: true
+            }) as BoardCellInfo))
+        let randomColumn = Math.floor(Math.random() * this.width);
+        for (const row of newCells) {
+            if (Math.random() * 100 >= cheesePercent)
+                randomColumn = Math.floor(Math.random() * this.width);
+            row[randomColumn] = {
+                color: TetraColor.NONE,
+                isOccupied: false
+            }
+        }
+        this.cells.unshift(...newCells);
+        this.setState({ cells: this.cells })
+    }
+
     // Updates the board to clear any lines that were potentially filled
-    updateClearedLines = () => {
+    updateClearedLines(tSpinType = TSpinType.NONE) {
+        let rowsCleared = 0;
         for (let i = 0; i < this.cells.length; i++) {
             const cellRow = this.cells[i];
             if (cellRow.some(cell => !cell.isOccupied)) continue;
+            rowsCleared++;
             this.cells.splice(i, 1)
             this.cells.push(Array.from({ length: this.width }, () => ({
                 color: TetraColor.NONE,
@@ -224,6 +310,31 @@ export class Board extends Component<BoardProps, BoardState> {
             })));
             this.setState({ cells: this.cells });
             i--;
+        }
+
+        const { meta, meta: { clears } } = this;
+        if (!rowsCleared) meta.combo = 0;
+        else meta.combo++;
+        if (this.cells.every(x => x.every(x => !x.isOccupied))) clears.allClear++;
+        if (tSpinType == TSpinType.MINI) clears.tsm++;
+        if (tSpinType == TSpinType.NONE && (rowsCleared > 0 && rowsCleared < 4)) meta.b2b = 0;
+        else if (rowsCleared) meta.b2b++;
+        switch (rowsCleared) {
+            case 1:
+                clears.single++;
+                if (tSpinType == TSpinType.TSPIN) clears.tss++;
+                break;
+            case 2:
+                clears.double++;
+                if (tSpinType == TSpinType.TSPIN) clears.tsd++;
+                break;
+            case 3:
+                clears.triple++;
+                if (tSpinType == TSpinType.TSPIN) clears.tst++;
+                break;
+            case 4:
+                clears.quad++;
+                break;
         }
     }
 
@@ -235,6 +346,16 @@ export class Board extends Component<BoardProps, BoardState> {
             this.next.push(...shuffledPieces);
         }
         this.setState({ next: this.next });
+    }
+
+    gameOver() {
+        this.setPaused(true);
+        for (const row of this.cells) {
+            for (const cell of row) {
+                if (cell.isOccupied) cell.color = TetraColor.HELD;
+            }
+        }
+        if (this.activeTetramino.current) this.activeTetramino.current.type = TetraminoType.NONE;
     }
 }
 

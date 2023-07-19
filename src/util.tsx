@@ -1,6 +1,6 @@
 import { BaseTexture, Rectangle, SCALE_MODES, Texture } from 'pixi.js';
 import { Coordinate, TetraColor, TetraminoDirection } from './types';
-import grid from "./assets/jstris1.png";
+import grid from "./assets/TetrisPlusClassic.png";
 import empty from "./assets/empty.png";
 import { Board } from './components/Board';
 

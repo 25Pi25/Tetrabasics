@@ -1,15 +1,10 @@
 import { Sprite } from '@pixi/react';
-import { Coordinate, TetraColor, TetraminoDirection, TetraminoType, flipKickTable, iKickTable, mainKickTable, tetraminoInfo } from '../types'
+import { Coordinate, TSpinType, TetraColor, TetraminoDirection, TetraminoType, flipKickTable, iKickTable, mainKickTable, tetraminoInfo } from '../types'
 import { Point } from 'pixi.js';
 import { getDirectionOffset, getTexture } from '../util';
 import { Component, Fragment } from 'react';
 import { Board } from './Board';
 
-enum TSpinType {
-    NONE,
-    TSPIN,
-    MINI
-}
 interface ActiveTetraminoProps {
     board: Board;
 }
@@ -21,9 +16,12 @@ interface ActiveTetraminoState {
 export default class ActiveTetramino extends Component<ActiveTetraminoProps, ActiveTetraminoState> {
     board: Board;
     direction: TetraminoDirection = TetraminoDirection.UP;
-    coords: Coordinate = { x: 4, y: 19 };
+    coords: Coordinate = { x: 0, y: 0 };
     type: TetraminoType = TetraminoType.NONE;
     tSpinType = TSpinType.NONE;
+    // -1 indicates you have infinite rotations until locking
+    rotations = -1;
+    lockTimeout: ReturnType<typeof setTimeout> | null = null;
     state: ActiveTetraminoState = {
         direction: this.direction,
         coords: this.coords,
@@ -33,14 +31,8 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
     constructor(props: ActiveTetraminoProps) {
         super(props);
         this.board = props.board;
-        // TODO: Make this pull from queue
         this.direction = TetraminoDirection.UP;
         this.type = TetraminoType.NONE;
-    }
-    componentDidMount() {
-        this.getNextPiece();
-        const { direction, coords, type } = this;
-        this.setState({ direction, coords, type })
     }
     render() {
         if (this.state.type == TetraminoType.NONE) return null;
@@ -98,6 +90,23 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
         if (lock) this.place();
     }
     move(deltaX = 0, deltaY = 0, { isCycled = false, isRotation = false } = {}): boolean {
+        const LOCK_TIMEOUT = 500;
+        if (!this.canMove(deltaX, deltaY)) return false;
+        this.coords = { x: this.coords.x + deltaX, y: this.coords.y + deltaY }
+        if (!isCycled) this.setState(() => ({ coords: this.coords }));
+        if (!isRotation) this.tSpinType = TSpinType.NONE;
+
+        if (this.rotations > 0) this.rotations--;
+        if (this.lockTimeout) clearInterval(this.lockTimeout);
+        if (!this.canMove(0, -1)) {
+            // TODO: Custom lock delay maybe?
+            if (this.rotations == -1) this.rotations = 15;
+            if (this.rotations == 0) this.place();
+            else this.lockTimeout = setTimeout(() => this.place(), LOCK_TIMEOUT);
+        }
+        return true;
+    }
+    canMove(deltaX = 0, deltaY = 0): boolean {
         for (const offset of this.getTetraminoInfo().pieceOffsets) {
             const { x: initialX, y: initialY } = this.getPieceCoords(offset);
             const [x, y] = [initialX + deltaX, initialY + deltaY]
@@ -106,10 +115,6 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
             const destination = this.board.cells[y]?.[x]
             if (destination.isOccupied) return false;
         }
-
-        this.coords = { x: this.coords.x + deltaX, y: this.coords.y + deltaY }
-        if (!isCycled) this.setState(() => ({ coords: this.coords }));
-        if (!isRotation) this.tSpinType = TSpinType.NONE;
         return true;
     }
 
@@ -153,7 +158,7 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
             }
         }
         this.direction = oldDirection;
-        this.setState({ direction: this.direction })
+        this.setState({ direction: this.direction });
     }
 
 
@@ -168,8 +173,9 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
             this.board.hold.used = false;
             this.board.setState(({ cells: this.board.cells, hold: this.board.hold }));
         }
-        this.board.updateClearedLines();
-        this.getNextPiece()
+        this.board.meta.pieces++;
+        this.board.updateClearedLines(this.tSpinType);
+        this.getNextPiece();
     }
 
     hold = () => this.getNextPiece(true);
@@ -189,8 +195,12 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
             this.type = holdType;
         }
 
+        // TODO: Add game over if none exists
         this.direction = TetraminoDirection.UP;
-        this.coords = { x: 4, y: 19 };
+        this.coords = { x: 4, y: 21 };
+        this.rotations = -1;
+        // TODO: Make this check if there's available space, else game over
+        if (!this.move(0, 0)) this.board.gameOver();
         const { type, direction, coords } = this;
         this.setState({ type, direction, coords });
     }

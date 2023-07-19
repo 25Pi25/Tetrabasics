@@ -14,6 +14,12 @@ export enum TetraColor {
     WARNING = 11
 }
 
+export enum TSpinType {
+    NONE,
+    TSPIN,
+    MINI
+}
+
 export enum TetraminoType {
     L = "L",
     J = "J",
