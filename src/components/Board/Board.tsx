@@ -6,10 +6,10 @@ import ActiveTetramino from '../ActiveTetramino';
 import TetraminoDisplay from '../TetraminoDisplay';
 import BoardCell from './BoardCell';
 import DynamicContentComponent from '../ScriptEditor/ScriptEditor';
-import { Command, Script } from '../ScriptEditor/scriptTypes';
+import { Argument, Command, Script } from '../ScriptEditor/scriptTypes';
 import { clearShiftRepeat, controlEvents, handleKeyDown, handleKeyUp, setPaused } from './controls';
 import { fillNextPieces, gameOver, injectGarbage, resetBoard, setMap, updateClearedLines, updateNext } from './gameControls';
-import { calculateCondition, executeCommand, getVariable, startScriptExecution } from './scriptExecution';
+import { calculateCondition, checkWhenConditions, executeCommand, getVariable, startScriptExecution } from './scriptExecution';
 
 // TODO: add finesse faults??
 export interface BoardMeta {
@@ -80,6 +80,7 @@ export class Board extends Component<BoardProps, BoardState> {
     map: string;
     meta: BoardMeta = { ...defaultBoardMeta };
     script: { functions: Command[][], variables: Record<string, number> };
+    whenConditions: Argument[][] = [];
 
     hold: { type: TetraminoType, used: boolean } = { type: TetraminoType.NONE, used: false }
     next: TetraminoType[] = [];
@@ -103,10 +104,16 @@ export class Board extends Component<BoardProps, BoardState> {
             variables: variables.reduce((a: Record<string, number>, b) => ({ ...a, [b]: 0 }), {})
         };
     }
+    // TODO: get rid of this
+    gameTimeout: ReturnType<typeof setTimeout> | null = null;
     componentDidMount() {
         this.setState({ cells: this.cells });
         // TODO: Run conditional if the board disables new next pieces
         this.setMap(this.map);
+        this.gameTimeout = setTimeout(this.startGame.bind(this), 1000)
+    }
+    componentWillUnmount() {
+        if (this.gameTimeout) clearTimeout(this.gameTimeout);
     }
     render() {
         const renderedHeight = this.height - Board.matrixBuffer + Board.matrixVisible;
@@ -139,11 +146,12 @@ export class Board extends Component<BoardProps, BoardState> {
         current.getNextPiece();
         const { direction, coords, type } = current;
         current.setState({ direction, coords, type });
-        this.startScriptExecution();
+        void this.startScriptExecution();
     }
     // Script execution
     startScriptExecution = startScriptExecution;
     executeCommand = executeCommand;
+    checkWhenConditions = checkWhenConditions;
     getVariable = getVariable;
     calculateCondition = calculateCondition;
 

@@ -77,11 +77,13 @@ export function handleKeyUp(this: Board, { key }: KeyboardEvent) {
         controlEvents.down = null;
     }
 }
+
 export const controlEvents: {
     left: { das: ReturnType<typeof setTimeout> | null, delay: ReturnType<typeof setInterval> | null },
     right: { das: ReturnType<typeof setTimeout> | null, delay: ReturnType<typeof setInterval> | null },
     down: ReturnType<typeof setInterval> | null
 } = { left: { das: null, delay: null }, right: { das: null, delay: null }, down: null }
+
 export function clearShiftRepeat(this: Board, eventDirection: { das: ReturnType<typeof setTimeout> | null, delay: ReturnType<typeof setInterval> | null }) {
     if (eventDirection.das) {
         clearTimeout(eventDirection.das);
@@ -92,4 +94,3 @@ export function clearShiftRepeat(this: Board, eventDirection: { das: ReturnType<
         eventDirection.delay = null;
     }
 }
-

@@ -1,0 +1,1 @@
+{"functions":[[{"type":"when","args":[{"type":"dynamicNumber","value":{"numberType":"meta","value":"b2b"}},{"type":"equality","value":"="},{"type":"dynamicNumber","value":{"numberType":"number","value":"3"}},{"type":"plainText","value":"run"},{"type":"command","value":{"type":"winGame","args":[]}}]}]],"variables":["deez","nuts"]}

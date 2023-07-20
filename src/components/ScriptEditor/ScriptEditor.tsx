@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import './CommandEditor.css';
+import './ScriptEditor.css';
 import { Command, variables } from './scriptTypes';
 import { CommandBox } from './ArgumentBoxes';
 
