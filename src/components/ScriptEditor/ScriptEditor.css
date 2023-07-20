@@ -1,3 +1,7 @@
 .editor-border {
     border: 2px solid black;
 }
+
+p {
+    margin: 0;
+}

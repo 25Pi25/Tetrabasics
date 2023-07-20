@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import './App.css'
-import { Board } from './components/Board.tsx'
+import { Board } from './components/Board/Board.tsx'
 
 
 function App() {

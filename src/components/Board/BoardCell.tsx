@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Coordinate, TetraColor } from '../types';
+import { Coordinate, TetraColor } from '../../types';
 import { Board } from './Board';
 import { Sprite } from '@pixi/react';
-import { getTexture } from '../util';
+import { getTexture } from '../../util';
 import { Point } from 'pixi.js';
 
 

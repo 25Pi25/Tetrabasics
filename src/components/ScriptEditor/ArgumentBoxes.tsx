@@ -1,103 +1,18 @@
-import { useState, Dispatch, SetStateAction } from 'react';
-import './CommandEditor.css';
-
-const dynamicNumberType = ["number", "variable"] as const;
-type DynamicNumberType = typeof dynamicNumberType[number];
-interface DynamicNumber {
-    numberType: DynamicNumberType,
-    value: number | string
-}
-enum Equality {
-    EQUALS = "=",
-    LESS = "<",
-    GREATER = ">",
-    LESSEQUAL = "<=",
-    GREATEREQUAL = ">=",
-    NOT = "!"
-}
-
-const commandType = ["", "if", "function", "setVariable", "addVariable"] as const;
-type CommandType = typeof commandType[number];
-interface ArgumentType {
-    type: "dynamicNumber" | "equality" | "command",
-    value: DynamicNumber | Equality | Command
-}
-
-interface Command {
-    type: CommandType,
-    args: ArgumentType[]
-}
-
-const argDefault: Record<string, ArgumentType> = {
-    dynamicNumber: { type: "dynamicNumber", value: { numberType: "number", value: 0 } },
-    equality: { type: "equality", value: Equality.EQUALS },
-    command: { type: "command", value: { type: "", args: [] } }
-}
-function getNewArgs(commandType: CommandType): ArgumentType[] {
-    const { dynamicNumber, equality, command } = argDefault;
-    switch (commandType) {
-        case "":
-            return [];
-        case "if":
-            return [dynamicNumber, equality, dynamicNumber, command];
-        case "function":
-            return [dynamicNumber];
-        case "setVariable":
-            return [dynamicNumber, dynamicNumber];
-        default:
-            return [];
-    }
-}
-
-export default function DynamicContentComponent() {
-    const [activeButton, setActiveButton] = useState<number>(0);
-    const [script, setScript] = useState<Command[][]>([[{ type: "", args: [] }]]);
-
-    const buttons = script.map((_, i) => `Function ${i || "Main"}`);
-    const scriptClone = [...script];
-
-    return <div style={{}}>
-        <div style={{}}>
-            {buttons.map((button, i) => (
-                <button
-                    key={i}
-                    onClick={() => setActiveButton(i)}
-                    style={{ backgroundColor: activeButton === i ? 'lightblue' : 'white' }}
-                >{button}</button>
-            ))}
-        </div>
-        <div className='editor-border'>
-            {scriptClone[activeButton].map((command, i) => <CommandBox
-                script={scriptClone}
-                activeCommand={command}
-                setScript={setScript}
-                fullFunction={scriptClone[activeButton]}
-                commandIndex={i}
-                recurseLevel={0}
-                key={i}
-            />)}
-        </div>
-    </div>
-}
+import { ChangeEvent, Dispatch, SetStateAction } from 'react';
+import { Argument, Command, CommandType, DynamicNumber, DynamicNumberType, Equality, commandType, dynamicNumberType, getNewArgs, variables } from './scriptTypes';
+import { BoardMeta, defaultBoardMeta } from '../Board/Board';
 
 interface CommandProps {
     script: Command[][];
     activeCommand: Command;
     setScript: Dispatch<SetStateAction<Command[][]>>;
-    fullFunction: Command[] | ArgumentType;
+    fullFunction: Command[] | Argument;
     commandIndex: number;
     recurseLevel: number
 }
 
-interface ArgumentProps {
-    script: Command[][];
-    activeCommand: Command;
-    setScript: Dispatch<SetStateAction<Command[][]>>;
-    argIndex: number;
-}
-
-function CommandBox({ script, activeCommand, setScript, fullFunction, commandIndex, recurseLevel }: CommandProps) {
-    return <div style={{ display: "flex", flexDirection: "row", border: `2px solid ${recurseLevel ? "red" : "green"}`, flexWrap: "wrap" }}>
+export function CommandBox({ script, activeCommand, setScript, fullFunction, commandIndex, recurseLevel }: CommandProps) {
+    return <div style={{ display: "flex", flexDirection: "row", border: `2px solid ${recurseLevel ? "red" : "green"}`, flexWrap: "wrap", alignItems: "center" }}>
         <select value={activeCommand.type}
             onChange={({ target: { value } }) => {
                 if (!Array.isArray(fullFunction)) {
@@ -140,6 +55,14 @@ function CommandBox({ script, activeCommand, setScript, fullFunction, commandInd
                         activeCommand={activeCommand}
                         argIndex={i}
                         key={i} />
+                case "variable":
+                    return <VariableBox script={...script}
+                        setScript={setScript}
+                        activeCommand={activeCommand}
+                        argIndex={i}
+                        key={i} />
+                case "plainText":
+                    return <p key={i}>{argument.value as string}</p>
                 default:
                     return <div key={i}></div>
             }
@@ -158,6 +81,13 @@ function CommandBox({ script, activeCommand, setScript, fullFunction, commandInd
     </div>
 }
 
+interface ArgumentProps {
+    script: Command[][];
+    activeCommand: Command;
+    setScript: Dispatch<SetStateAction<Command[][]>>;
+    argIndex: number;
+}
+
 function DynamicNumberBox({ script, activeCommand, setScript, argIndex }: ArgumentProps) {
     const argument = activeCommand.args[argIndex].value as DynamicNumber;
     return <div style={{ border: "2px solid blue" }}>
@@ -171,23 +101,46 @@ function DynamicNumberBox({ script, activeCommand, setScript, argIndex }: Argume
         </select>
         {argument.numberType == "number" && <input
             type='number'
-            min={0}
-            max={100}></input>}
-        {argument.numberType == "variable" && <input
-            type='text'
-            minLength={0}
-            maxLength={10}
-            size={3}></input>}
+            min={-1000000}
+            max={1000000}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                if (e.target.value) argument.value = e.target.value
+            }} />}
+        {argument.numberType == "variable" && <select value={argument.value as string}
+            onChange={({ target: { value } }) => {
+                argument.value = value;
+                setScript(script);
+            }}>
+            {Object.values(variables).map(x => <option value={x} key={x}>{x}</option>)}
+        </select>}
+        {argument.numberType == "meta" && <select value={argument.value as keyof BoardMeta}
+            onChange={({ target: { value } }) => {
+                argument.value = value as keyof BoardMeta;
+                setScript(script);
+            }}>
+            {Object.keys(defaultBoardMeta).map(x => <option value={x} key={x}>{x}</option>)}
+        </select>}
+    </div>
+}
+
+function VariableBox({ script, activeCommand, setScript, argIndex }: ArgumentProps) {
+    return <div style={{ border: "2px solid purple" }}>
+        <select value={activeCommand.args[argIndex].value as string}
+            onChange={({ target: { value } }) => {
+                activeCommand.args[argIndex].value = value;
+                setScript(script);
+            }}
+            key={argIndex}>
+            {Object.values(variables).map(x => <option value={x} key={x}>{x}</option>)}
+        </select>
     </div>
 }
 
 function EqualityBox({ script, activeCommand, setScript, argIndex }: ArgumentProps) {
-    const [localEqualityType, setLocalEqualityType] = useState<Equality>(Equality.EQUALS)
     return <div style={{ border: "2px solid purple" }}>
-        <select value={localEqualityType}
+        <select value={activeCommand.args[argIndex].value as Equality}
             onChange={({ target: { value } }) => {
                 activeCommand.args[argIndex].value = value as Equality;
-                setLocalEqualityType(activeCommand.args[argIndex].value as Equality)
                 setScript(script);
             }}
             key={argIndex}>

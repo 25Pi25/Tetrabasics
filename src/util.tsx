@@ -2,7 +2,7 @@ import { BaseTexture, Rectangle, SCALE_MODES, Texture } from 'pixi.js';
 import { Coordinate, TetraColor, TetraminoDirection } from './types';
 import grid from "./assets/TetrisPlusClassic.png";
 import empty from "./assets/empty.png";
-import { Board } from './components/Board';
+import { Board } from './components/Board/Board';
 
 export function getTexture(color: TetraColor, y = 0) {
     const texture = color == TetraColor.NONE ?

@@ -3,7 +3,7 @@ import { Coordinate, TSpinType, TetraColor, TetraminoDirection, TetraminoType, f
 import { Point } from 'pixi.js';
 import { getDirectionOffset, getTexture } from '../util';
 import { Component, Fragment } from 'react';
-import { Board } from './Board';
+import { Board } from './Board/Board';
 
 interface ActiveTetraminoProps {
     board: Board;
