@@ -21,11 +21,11 @@ export default function DynamicContentComponent() {
             ))}
             <button onClick={() => {
                 script.push([{ type: "", args: [] }]);
-                setScript([...script])
+                setScript(scriptClone)
             }}>+</button>
             <button onClick={() => {
                 if (script.length > 1) script.pop();
-                setScript([...script])
+                setScript(scriptClone)
             }}>-</button>
         </div>
         <div className='editor-border'>
@@ -44,10 +44,10 @@ export default function DynamicContentComponent() {
             const blob = new Blob([JSON.stringify({ functions: modifiedScript, variables })], { type: 'application/json' });
             const selector = document.createElement("a");
             const link = URL.createObjectURL(blob);
-            selector.href = link
+            selector.href = link;
             selector.download = "script.json";
             selector.click();
-            document.removeChild(selector);
+            selector.parentElement?.removeChild(selector);
             URL.revokeObjectURL(link);
         }}>Export!</button>
     </div>

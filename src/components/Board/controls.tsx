@@ -5,11 +5,11 @@ export function setPaused(this: Board, paused: boolean) {
     this.paused = paused;
 
     if (isPaused && !paused) {
-        addEventListener("keydown", this.handleKeyDown.bind(this));
-        addEventListener("keyup", this.handleKeyUp.bind(this));
+        document.addEventListener("keydown", this.handleKeyDown);
+        document.addEventListener("keyup", this.handleKeyUp);
     } else if (paused) {
-        removeEventListener("keydown", this.handleKeyDown.bind(this));
-        removeEventListener("keyup", this.handleKeyUp.bind(this));
+        document.removeEventListener("keydown", this.handleKeyDown);
+        document.removeEventListener("keyup", this.handleKeyUp);
         this.keyPresses = new Set<string>();
     }
 }

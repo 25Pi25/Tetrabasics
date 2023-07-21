@@ -61,7 +61,7 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
     getTetraminoInfo = () => tetraminoInfo[this.type];
     // Gets the absolute x/y position on the board for a specific piece
     getPieceCoords(offset: Coordinate): Coordinate {
-        const [xOffset, yOffset] = getDirectionOffset(this.direction, offset);
+        const { x: xOffset, y: yOffset } = getDirectionOffset(this.direction, offset);
         return {
             x: this.coords.x + xOffset + this.getTetraminoInfo().cursorOffset.x,
             y: this.coords.y + yOffset + this.getTetraminoInfo().cursorOffset.y
@@ -125,7 +125,7 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
         if (this.type != TetraminoType.T) return TSpinType.NONE;
         const piecesOccupied = [{ x: 1, y: 1 }, { x: -1, y: 1 }, { x: -1, y: -1 }, { x: 1, y: -1 }]
             .map(x => getDirectionOffset(this.direction, x))
-            .map(([x, y]) => this.board.cells[this.coords.y + y]?.[this.coords.x + x]?.isOccupied ?? true);
+            .map(({ x, y }) => this.board.cells[this.coords.y + y]?.[this.coords.x + x]?.isOccupied ?? true);
         return piecesOccupied.reduce((a, b) => a + (b ? 1 : 0), 0) < 3 ? TSpinType.NONE :
             piecesOccupied[0] && piecesOccupied[1] || kickIndex >= 3 ? TSpinType.TSPIN : TSpinType.MINI
     }
@@ -180,27 +180,45 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
 
     hold = () => this.getNextPiece(true);
     getNextPiece(getHold = false) {
+        if (this.board.paused) return;
         if (getHold && this.board.hold.used) return;
-        const holdType = this.board.hold.type;
-        if (getHold) {
-            this.board.hold = { type: this.type, used: true };
-            this.board.setState({ hold: this.board.hold })
+        if (!this.board.next.length && this.board.hold.type == TetraminoType.NONE) {
+            this.board.checkWhenConditions();
+            void this.board.gameOver();
+            return;
         }
 
-        if (!getHold || holdType == TetraminoType.NONE) {
-            const nextTetramino = this.board.next.shift();
-            this.board.updateNext();
-            this.type = nextTetramino ?? TetraminoType.NONE;
+        const holdType = this.board.hold.type;
+        if (getHold) {
+            // establish 1st hold and go to the next one
+            if (holdType == TetraminoType.NONE) {
+                const nextTetramino = this.board.next.shift();
+                this.board.hold = { type: this.type, used: true };
+                this.board.updateNext();
+                this.type = nextTetramino ?? TetraminoType.NONE;
+            } else {
+                this.board.hold = { type: this.type, used: true };
+                this.type = holdType;
+            }
+            this.board.setState({ hold: this.board.hold })
         } else {
-            this.type = holdType;
+            if (this.board.next.length) {
+                const nextTetramino = this.board.next.shift();
+                this.board.updateNext();
+                this.type = nextTetramino ?? TetraminoType.NONE;
+            } else {
+                this.board.hold = { type: TetraminoType.NONE, used: true };
+                this.type = holdType;
+                this.board.setState({ hold: this.board.hold })
+            }
         }
 
         // TODO: Add game over if none exists
         this.direction = TetraminoDirection.UP;
-        this.coords = { x: 4, y: 21 };
+        this.coords = { x: Math.floor(this.board.width / 2) - 1, y: this.board.height - Board.matrixBuffer + 1 };
         this.rotations = -1;
         // TODO: Make this check if there's available space, else game over
-        if (!this.move(0, 0)) this.board.gameOver();
+        if (!this.move(0, 0)) void this.board.gameOver();
         const { type, direction, coords } = this;
         this.setState({ type, direction, coords });
     }

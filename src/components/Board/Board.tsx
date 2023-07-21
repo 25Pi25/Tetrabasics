@@ -8,8 +8,8 @@ import BoardCell from './BoardCell';
 import DynamicContentComponent from '../ScriptEditor/ScriptEditor';
 import { Argument, Command, Script } from '../ScriptEditor/scriptTypes';
 import { clearShiftRepeat, controlEvents, handleKeyDown, handleKeyUp, setPaused } from './controls';
-import { fillNextPieces, gameOver, injectGarbage, resetBoard, setMap, updateClearedLines, updateNext } from './gameControls';
-import { calculateCondition, checkWhenConditions, executeCommand, getVariable, startScriptExecution } from './scriptExecution';
+import { fillNextPieces, gameOver, injectGarbage, resetBoard, setDimensions, setMap, updateClearedLines, updateNext } from './gameControls';
+import { calculateCondition, checkWhenConditions, executeCommand, executeFunction, getDynamicNumber, getVariable, startScriptExecution } from './scriptExecution';
 
 // TODO: add finesse faults??
 export interface BoardMeta {
@@ -59,9 +59,6 @@ export interface BoardCellInfo {
 }
 
 interface BoardProps {
-    width?: number,
-    height?: number,
-    map?: string,
     script?: Script;
 }
 interface BoardState {
@@ -74,46 +71,39 @@ export class Board extends Component<BoardProps, BoardState> {
     static matrixBuffer = 20;
     static matrixVisible = 3;
     activeTetramino: RefObject<ActiveTetramino>;
-    width: number;
-    height: number;
-    cells: BoardCellInfo[][] = [[]];
-    map: string;
+    width = 10;
+    height = 20;
+    cells: BoardCellInfo[][] = [];
+    map = "";
     meta: BoardMeta = { ...defaultBoardMeta };
     script: { functions: Command[][], variables: Record<string, number> };
     whenConditions: Argument[][] = [];
 
-    hold: { type: TetraminoType, used: boolean } = { type: TetraminoType.NONE, used: false }
+    hold: { type: TetraminoType, used: boolean } = { type: TetraminoType.NONE, used: false };
     next: TetraminoType[] = [];
+    refillPieces = true;
     state: BoardState = { cells: this.cells, next: this.next, hold: this.hold };
+    timeouts: ({ name: "waitCommand" | "game", timeout: ReturnType<typeof setTimeout> })[] = [];
 
     constructor(props: BoardProps) {
         super(props);
-        const { width = 10, height = 20, map = "", script } = props;
+        const { script } = props;
         this.activeTetramino = createRef<ActiveTetramino>()
-        this.width = Math.min(Math.max(4, width), 20);
-        this.height = Math.min(Math.max(4, height), 40) + Board.matrixBuffer;
-        this.cells = Array.from({ length: this.height }, () =>
-            Array.from({ length: this.width }, () => ({
-                color: TetraColor.NONE,
-                isOccupied: false
-            })));
-        this.map = map;
         const { functions, variables } = script ?? { functions: [], variables: [] }
         this.script = {
             functions,
             variables: variables.reduce((a: Record<string, number>, b) => ({ ...a, [b]: 0 }), {})
         };
     }
-    // TODO: get rid of this
-    gameTimeout: ReturnType<typeof setTimeout> | null = null;
     componentDidMount() {
         this.setState({ cells: this.cells });
         // TODO: Run conditional if the board disables new next pieces
-        this.setMap(this.map);
-        this.gameTimeout = setTimeout(this.startGame.bind(this), 1000)
+        this.setMap();
+        this.timeouts.push({ name: "game", timeout: setTimeout(this.startGame.bind(this), 1000) });
     }
     componentWillUnmount() {
-        if (this.gameTimeout) clearTimeout(this.gameTimeout);
+        const gameStart = this.timeouts.find(x => x.name == "game")
+        if (gameStart) clearTimeout(gameStart.timeout);
     }
     render() {
         const renderedHeight = this.height - Board.matrixBuffer + Board.matrixVisible;
@@ -140,6 +130,11 @@ export class Board extends Component<BoardProps, BoardState> {
     // Start game -> I mean this is pretty self-explanatory
     startGame() {
         this.setPaused(false);
+        this.setMap();
+        this.meta = { ...defaultBoardMeta };
+        this.refillPieces = true;
+        this.finishedScript = false;
+        this.finishScriptEarly = false;
         this.updateNext();
         const { current } = this.activeTetramino;
         if (!current) return;
@@ -148,24 +143,27 @@ export class Board extends Component<BoardProps, BoardState> {
         current.setState({ direction, coords, type });
         void this.startScriptExecution();
     }
-    // Script execution
+    // scriptExecution.tsx
+    finishedScript = false;
+    finishScriptEarly = false;
     startScriptExecution = startScriptExecution;
+    executeFunction = executeFunction;
     executeCommand = executeCommand;
     checkWhenConditions = checkWhenConditions;
     getVariable = getVariable;
     calculateCondition = calculateCondition;
+    getDynamicNumber = getDynamicNumber;
 
-    // Input controls
-    // Controls
+    // controls.tsx
     paused = true;
     keyPresses: Set<string> = new Set<string>();
     setPaused = setPaused;
-    handleKeyDown = handleKeyDown;
-    handleKeyUp = handleKeyUp;
+    handleKeyDown = handleKeyDown.bind(this);
+    handleKeyUp = handleKeyUp.bind(this);
     controlEvents = controlEvents;
     clearShiftRepeat = clearShiftRepeat;
 
-    // Control methods
+    // gameControls.tsx
     resetBoard = resetBoard;
     fillNextPieces = fillNextPieces;
     setMap = setMap;
@@ -173,4 +171,5 @@ export class Board extends Component<BoardProps, BoardState> {
     updateClearedLines = updateClearedLines;
     updateNext = updateNext;
     gameOver = gameOver;
+    setDimensions = setDimensions;
 }

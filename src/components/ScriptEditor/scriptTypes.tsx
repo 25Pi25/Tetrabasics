@@ -1,6 +1,5 @@
 import { BoardMeta } from '../Board/Board';
 
-export const dynamicNumberType = ["number", "variable", "meta"] as const;
 export enum Equality {
     EQUALS = "=",
     LESS = "<",
@@ -14,15 +13,29 @@ export const variables: string[] = [
     "nuts"
 ]
 
+export const dynamicNumberType = ["number", "variable", "meta", "operation"] as const;
 export type DynamicNumberType = typeof dynamicNumberType[number];
 export interface DynamicNumber {
     numberType: DynamicNumberType,
-    value: number | string | keyof BoardMeta
+    value: number | string | keyof BoardMeta | Operation
 }
-export const commandType = ["", "if", "when", "function", "setVariable", "addVariable", "loseGame", "winGame", "wait"] as const;
+export enum Operator {
+    PLUS = "+",
+    MINUS = "-",
+    MULTIPLY = "*",
+    DIVIDE = "/",
+    MODULO = "%"
+}
+export interface Operation {
+    number1: DynamicNumber,
+    operation: Operator,
+    number2: DynamicNumber
+}
+
+export const commandType = ["", "if", "when", "function", "setVariable", "addVariable", "loseGame", "winGame", "wait", "setMap"] as const;
 export type CommandType = typeof commandType[number];
 
-type ArgumentType = "dynamicNumber" | "equality" | "command" | "variable" | "plainText";
+type ArgumentType = "dynamicNumber" | "equality" | "command" | "variable" | "plainText" | "string";
 export interface Argument {
     type: ArgumentType;
     value: DynamicNumber | Equality | Command | string;
@@ -43,15 +56,16 @@ export const argDefault: Record<string, (str?: string) => Argument> = {
     equality: () => ({ type: "equality", value: Equality.EQUALS }),
     command: () => ({ type: "command", value: { type: "", args: [] } }),
     variable: () => ({ type: "variable", value: variables[0] }),
-    plainText: (str) => ({ type: "plainText", value: str ?? "" })
+    plainText: (value = "") => ({ type: "plainText", value }),
+    string: () => ({ type: "string", value: "" })
 }
 
 export function getNewArgs(commandType: CommandType): Argument[] {
-    const { dynamicNumber, equality, command, variable, plainText } = argDefault;
+    const { dynamicNumber, equality, command, variable, plainText, string } = argDefault;
     switch (commandType) {
         case "if":
         case "when":
-            return [dynamicNumber(), equality(), dynamicNumber(), { type: "plainText", value: "run" }, command()];
+            return [dynamicNumber(), equality(), dynamicNumber(), plainText("run"), command()];
         case "function":
             return [dynamicNumber()];
         case "addVariable":
@@ -59,7 +73,9 @@ export function getNewArgs(commandType: CommandType): Argument[] {
         case "setVariable":
             return [variable(), plainText("to"), dynamicNumber()];
         case "wait":
-            return [dynamicNumber(), plainText("seconds")]
+            return [dynamicNumber(), plainText("seconds")];
+        case "setMap":
+            return [string()];
         case "loseGame":
         case "winGame":
         case "":

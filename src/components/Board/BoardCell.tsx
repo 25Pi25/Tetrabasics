@@ -25,7 +25,7 @@ export default function BoardCell({ board, coords, isOccupied, color }: BoardCel
     }, [coords, isOccupied, color]);
 
     return <Sprite
-        texture={getTexture(state.color, state.coords.y)}
+        texture={getTexture(state.color, state.coords.y, board.height)}
         scale={new Point(Board.cellSize / 30, Board.cellSize / 30)}
         alpha={state.isOccupied ? 1 : 0.5}
         x={state.coords.x * Board.cellSize}

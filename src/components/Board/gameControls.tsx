@@ -6,14 +6,17 @@ export function resetBoard(this: Board) {
         cell.color = TetraColor.NONE;
         cell.isOccupied = false;
     })
+
     if (this.map) this.setMap(this.map)
     else {
         this.next = [];
         this.updateNext();
         this.activeTetramino.current?.getNextPiece();
-        this.hold = { type: TetraminoType.NONE, used: false }
+        this.hold = { type: TetraminoType.NONE, used: false };
+        this.whenConditions = [];
         this.setState({ cells: this.cells, next: this.next, hold: this.hold })
     }
+    this.startGame();
 }
 
 export function fillNextPieces(this: Board, next: string) {
@@ -21,24 +24,29 @@ export function fillNextPieces(this: Board, next: string) {
     this.setState({ next: this.next })
 }
 
-export function setMap(this: Board, map: string) {
-    const [pieceMap, bagMap, holdPiece] = map.split("?");
+export function setMap(this: Board, map = "") {
+    const [pieceMap, bagMap, holdPiece, boardWidth = 10, boardHeight = 20] = map.split("?");
+    this.setDimensions(boardWidth as number, boardHeight as number)
     if (!pieceMap) return;
     for (let i = pieceMap.length - 1; i >= 0; i--) {
         const letter = pieceMap[i];
-        if (!/[ljzstioLJZSTO]/.test(letter)) continue;
+        if (!/[ljzstioLJZSTO#]/.test(letter)) continue;
         const inversePiece = pieceMap.length - i - 1;
-        if (!this.cells[Math.floor(inversePiece / this.width)][inversePiece % this.width]) continue;
-        this.cells[Math.floor(inversePiece / this.width)][inversePiece % this.width] = {
-            color: tetraminoInfo[letter.toUpperCase() as TetraminoType].color,
+        if (!this.cells[Math.floor(inversePiece / this.width)][this.width - 1 - (inversePiece % this.width)]) continue;
+        this.cells[Math.floor(inversePiece / this.width)][this.width - 1 - (inversePiece % this.width)] = {
+            color: letter == "#" ? TetraColor.GARBAGE :
+                tetraminoInfo[letter.toUpperCase() as TetraminoType].color,
             isOccupied: true
         }
     }
-    this.fillNextPieces(bagMap || "");
-    if (/[ljzstioLJZSTO]/.test(holdPiece[0])) this.hold = {
+    this.refillPieces = !bagMap;
+    if (bagMap) this.fillNextPieces(bagMap);
+    else this.updateNext();
+    if (holdPiece && /[ljzstioLJZSTO]/.test(holdPiece[0])) this.hold = {
         type: holdPiece[0].toUpperCase() as TetraminoType ?? TetraminoType.NONE,
         used: false
     }
+    else this.hold = { type: TetraminoType.NONE, used: false }
     const { current } = this.activeTetramino;
     if (current) {
         current.type = TetraminoType.NONE;
@@ -110,6 +118,7 @@ export function updateClearedLines(this: Board, tSpinType = TSpinType.NONE) {
 
 // Generates more pieces until the queue is filled
 export function updateNext(this: Board) {
+    if (!this.refillPieces) return;
     // TODO: Determine how many pieces far ahead the program should generate
     while (this.next.length < 14) {
         const shuffledPieces = "LJZSTIO".split("").sort(() => Math.random() - 0.5).map(x => x as TetraminoType);
@@ -118,12 +127,29 @@ export function updateNext(this: Board) {
     this.setState({ next: this.next });
 }
 
-export function gameOver(this: Board) {
+export async function gameOver(this: Board, win = false) {
+    if (this.paused) return;
     this.setPaused(true);
     for (const row of this.cells) {
         for (const cell of row) {
-            if (cell.isOccupied) cell.color = TetraColor.HELD;
+            if (cell.isOccupied) cell.color = win ? TetraColor.GREEN : TetraColor.HELD;
         }
     }
     if (this.activeTetramino.current) this.activeTetramino.current.type = TetraminoType.NONE;
+    if (!this.finishedScript) {
+        this.finishScriptEarly = true;
+        await new Promise<void>(res => setInterval(() => this.finishedScript && res(), 100));
+        this.finishScriptEarly = false;
+    }
+    this.setState({ cells: this.cells });
+}
+
+export function setDimensions(this: Board, width: number, height: number) {
+    this.width = Math.min(Math.max(4, width), 20);
+    this.height = Math.min(Math.max(4, height), 40) + Board.matrixBuffer;
+    this.cells = Array.from({ length: this.height }, () =>
+        Array.from({ length: this.width }, () => ({
+            color: TetraColor.NONE,
+            isOccupied: false
+        })));
 }
