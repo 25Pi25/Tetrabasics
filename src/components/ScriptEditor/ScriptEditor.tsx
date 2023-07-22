@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { Dispatch, SetStateAction, useState } from 'react';
 import './ScriptEditor.css';
 import { Command, variables } from './scriptTypes';
-import { CommandBox } from './ArgumentBoxes';
+import { CommandBox } from './ArgumentBoxes/CommandBox';
 
-export default function DynamicContentComponent() {
+export default function DynamicContentComponent({script, setScript}: {
+    script: Command[][],
+    setScript: Dispatch<SetStateAction<Command[][]>>
+}) {
     const [activeButton, setActiveButton] = useState<number>(0);
-    const [script, setScript] = useState<Command[][]>([[{ type: "", args: [] }]]);
+    // const [script, setScript] = useState<Command[][]>([[{ type: "", args: [] }]]);
 
     const buttons = script.map((_, i) => `Function ${i || "Main"}`);
     const scriptClone = [...script];
@@ -20,11 +23,11 @@ export default function DynamicContentComponent() {
                 >{button}</button>
             ))}
             <button onClick={() => {
-                script.push([{ type: "", args: [] }]);
+                scriptClone.push([{ type: "", args: [] }]);
                 setScript(scriptClone)
             }}>+</button>
             <button onClick={() => {
-                if (script.length > 1) script.pop();
+                if (scriptClone.length > 1) scriptClone.pop();
                 setScript(scriptClone)
             }}>-</button>
         </div>
@@ -40,7 +43,7 @@ export default function DynamicContentComponent() {
             />)}
         </div>
         <button onClick={() => {
-            const modifiedScript = script.map(x => x.slice(0, -1))
+            const modifiedScript = scriptClone.map(x => x.slice(0, -1))
             const blob = new Blob([JSON.stringify({ functions: modifiedScript, variables })], { type: 'application/json' });
             const selector = document.createElement("a");
             const link = URL.createObjectURL(blob);

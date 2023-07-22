@@ -26,7 +26,7 @@ export async function executeCommand(this: Board, { type, args }: Command) {
     switch (type) {
         case "if":
             if (this.calculateCondition(args))
-                await this.executeCommand(args[3].value as Command)
+                await this.executeCommand(args[4].value as Command)
             return;
         case "when":
             this.whenConditions.push(args)
@@ -34,7 +34,7 @@ export async function executeCommand(this: Board, { type, args }: Command) {
             return;
         case "wait":
             await new Promise<void>(res => {
-                setTimeout(res, variables[args[0].value as string]);
+                setTimeout(res, this.getDynamicNumber(args[0].value as DynamicNumber) * 1000);
                 setInterval(() => {
                     if (this.finishScriptEarly) res();
                 }, 100)
@@ -49,21 +49,33 @@ export async function executeCommand(this: Board, { type, args }: Command) {
             console.log("you LOSE LOSER FUCK YOU!!!!!")
             return;
         case "setVariable":
-            variables[args[0].value as string] = this.getDynamicNumber(args[1].value as DynamicNumber);
+            variables[args[0].value as string] = this.getDynamicNumber(args[2].value as DynamicNumber);
             return;
         case "addVariable":
-            variables[args[0].value as string] += this.getDynamicNumber(args[1].value as DynamicNumber);
+            variables[args[0].value as string] += this.getDynamicNumber(args[2].value as DynamicNumber);
             return;
         case "setMap":
             this.setMap(args[0].value as string);
             return;
+        case "injectGarbage":
+            this.injectGarbage(this.getDynamicNumber(args[0].value as DynamicNumber));
+            return;
+        case "setDisplay":
+            this.display = (args[0].value as string)
+                .replace(/\{(\w+)\}/g, (_, propName: string) => (this.script.variables[propName] || 0).toString());
+            this.setState({ display: this.display });
+            break;
         case "":
         default:
             break;
     }
     if (type == "function") {
         const firstFunction = functions[this.getDynamicNumber(args[0].value as DynamicNumber)] ?? functions[0];
-        requestAnimationFrame(() => void this.executeFunction.bind(this, firstFunction));
+        await this.executeFunction(firstFunction);
+    }
+    if (type == "asyncFunction") {
+        const firstFunction = functions[this.getDynamicNumber(args[0].value as DynamicNumber)] ?? functions[0];
+        requestAnimationFrame(() => void this.executeFunction(firstFunction));
     }
 }
 

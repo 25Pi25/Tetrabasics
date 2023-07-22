@@ -32,7 +32,21 @@ export interface Operation {
     number2: DynamicNumber
 }
 
-export const commandType = ["", "if", "when", "function", "setVariable", "addVariable", "loseGame", "winGame", "wait", "setMap"] as const;
+export const commandType = [
+    "",
+    "if",
+    "when",
+    "function",
+    "setVariable",
+    "addVariable",
+    "loseGame",
+    "winGame",
+    "wait",
+    "setMap",
+    "injectGarbage",
+    "asyncFunction",
+    "setDisplay"
+] as const;
 export type CommandType = typeof commandType[number];
 
 type ArgumentType = "dynamicNumber" | "equality" | "command" | "variable" | "plainText" | "string";
@@ -67,6 +81,8 @@ export function getNewArgs(commandType: CommandType): Argument[] {
         case "when":
             return [dynamicNumber(), equality(), dynamicNumber(), plainText("run"), command()];
         case "function":
+        case "asyncFunction":
+        case "injectGarbage":
             return [dynamicNumber()];
         case "addVariable":
             return [variable(), plainText("by"), dynamicNumber()];
@@ -75,6 +91,7 @@ export function getNewArgs(commandType: CommandType): Argument[] {
         case "wait":
             return [dynamicNumber(), plainText("seconds")];
         case "setMap":
+        case "setDisplay":
             return [string()];
         case "loseGame":
         case "winGame":

@@ -16,7 +16,7 @@ export function resetBoard(this: Board) {
         this.whenConditions = [];
         this.setState({ cells: this.cells, next: this.next, hold: this.hold })
     }
-    this.startGame();
+    void this.startGame();
 }
 
 export function fillNextPieces(this: Board, next: string) {
@@ -60,11 +60,12 @@ export function injectGarbage(this: Board, rows = 1, cheesePercent = 100) {
     const newCells = Array.from({ length: rows }, () =>
         Array.from({ length: this.width }, () => ({
             color: TetraColor.GARBAGE,
-            isOccupied: true
+            isOccupied: true,
+            isMapCell: true
         }) as BoardCellInfo))
     let randomColumn = Math.floor(Math.random() * this.width);
     for (const row of newCells) {
-        if (Math.random() * 100 >= cheesePercent)
+        if (Math.random() * 100 < cheesePercent)
             randomColumn = Math.floor(Math.random() * this.width);
         row[randomColumn] = {
             color: TetraColor.NONE,
@@ -72,7 +73,8 @@ export function injectGarbage(this: Board, rows = 1, cheesePercent = 100) {
         }
     }
     this.cells.unshift(...newCells);
-    this.setState({ cells: this.cells })
+    this.updateClearedLines();
+    this.setState({ cells: this.cells });
 }
 // Updates the board to clear any lines that were potentially filled
 export function updateClearedLines(this: Board, tSpinType = TSpinType.NONE) {
@@ -91,6 +93,9 @@ export function updateClearedLines(this: Board, tSpinType = TSpinType.NONE) {
     }
 
     const { meta } = this;
+    meta.height = this.height - [...this.cells].reverse().findIndex(cellRow => cellRow.some(cell => cell.isOccupied)) + 1
+    meta.mapHeight = this.height - [...this.cells].reverse().findIndex(cellRow => cellRow.some(cell => cell.isMapCell))
+    if (meta.mapHeight == this.height + 1) meta.mapHeight = 0;
     if (!rowsCleared) meta.combo = 0;
     else meta.combo++;
     if (this.cells.every(x => x.every(x => !x.isOccupied))) meta.allClear++;
@@ -136,12 +141,14 @@ export async function gameOver(this: Board, win = false) {
         }
     }
     if (this.activeTetramino.current) this.activeTetramino.current.type = TetraminoType.NONE;
-    if (!this.finishedScript) {
-        this.finishScriptEarly = true;
-        await new Promise<void>(res => setInterval(() => this.finishedScript && res(), 100));
-        this.finishScriptEarly = false;
-    }
+    if (!this.finishedScript) await this.finishScript();
     this.setState({ cells: this.cells });
+}
+
+export async function finishScript(this: Board) {
+    this.finishScriptEarly = true;
+    await new Promise<void>(res => setInterval(() => this.finishedScript && res(), 100));
+    this.finishScriptEarly = false;
 }
 
 export function setDimensions(this: Board, width: number, height: number) {

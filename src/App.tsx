@@ -1,11 +1,13 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import { Board } from './components/Board/Board.tsx'
 import jsons from './script.json' assert {type: "json"};
-import { Script } from './components/ScriptEditor/scriptTypes.tsx';
+import { Command, Script } from './components/ScriptEditor/scriptTypes.tsx';
+import DynamicContentComponent from './components/ScriptEditor/ScriptEditor.tsx';
 
-function App() {
+export default function App() {
   const boardRef = useRef<Board | null>(null);
+  const [script, setScript] = useState<Command[][]>((jsons as Script).functions);
   useEffect(() => {
     function things(e: KeyboardEvent) {
       if (e.key == "r") {
@@ -16,9 +18,9 @@ function App() {
     document.addEventListener("keypress", things)
     return () => document.removeEventListener("keypress", things)
   }, [])
+  //{ functions: script, variables } ?? jsons as Script} />
   return <>
-    {<Board ref={boardRef} script={jsons as Script} />}
+    <Board ref={boardRef} script={jsons as Script} /> 
+    <DynamicContentComponent script={script} setScript={setScript} />
   </>
 }
-
-export default App

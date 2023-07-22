@@ -5,12 +5,13 @@ export function setPaused(this: Board, paused: boolean) {
     this.paused = paused;
 
     if (isPaused && !paused) {
+        this.keyPresses = new Set<string>();
         document.addEventListener("keydown", this.handleKeyDown);
         document.addEventListener("keyup", this.handleKeyUp);
     } else if (paused) {
+        this.keyPresses = new Set<string>();
         document.removeEventListener("keydown", this.handleKeyDown);
         document.removeEventListener("keyup", this.handleKeyUp);
-        this.keyPresses = new Set<string>();
     }
 }
 export function handleKeyDown(this: Board, { key }: KeyboardEvent) {

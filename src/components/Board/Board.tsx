@@ -5,10 +5,9 @@ import { TetraColor, TetraminoType } from '../../types';
 import ActiveTetramino from '../ActiveTetramino';
 import TetraminoDisplay from '../TetraminoDisplay';
 import BoardCell from './BoardCell';
-import DynamicContentComponent from '../ScriptEditor/ScriptEditor';
 import { Argument, Command, Script } from '../ScriptEditor/scriptTypes';
 import { clearShiftRepeat, controlEvents, handleKeyDown, handleKeyUp, setPaused } from './controls';
-import { fillNextPieces, gameOver, injectGarbage, resetBoard, setDimensions, setMap, updateClearedLines, updateNext } from './gameControls';
+import { fillNextPieces, finishScript, gameOver, injectGarbage, resetBoard, setDimensions, setMap, updateClearedLines, updateNext } from './gameControls';
 import { calculateCondition, checkWhenConditions, executeCommand, executeFunction, getDynamicNumber, getVariable, startScriptExecution } from './scriptExecution';
 
 // TODO: add finesse faults??
@@ -30,7 +29,9 @@ export interface BoardMeta {
     tss: number,
     tsd: number,
     tst: number,
-    allClear: number
+    allClear: number,
+    height: number,
+    mapHeight: number
 }
 export const defaultBoardMeta = {
     pieces: 0,
@@ -50,12 +51,15 @@ export const defaultBoardMeta = {
     tss: 0,
     tsd: 0,
     tst: 0,
-    allClear: 0
+    allClear: 0,
+    height: 0,
+    mapHeight: 0
 }
 
 export interface BoardCellInfo {
     color: TetraColor;
     isOccupied: boolean;
+    isMapCell?: boolean;
 }
 
 interface BoardProps {
@@ -64,7 +68,8 @@ interface BoardProps {
 interface BoardState {
     cells: BoardCellInfo[][];
     next: TetraminoType[];
-    hold: { type: TetraminoType, used: boolean }
+    hold: { type: TetraminoType, used: boolean };
+    display: string;
 }
 export class Board extends Component<BoardProps, BoardState> {
     static cellSize = 30;
@@ -81,8 +86,9 @@ export class Board extends Component<BoardProps, BoardState> {
 
     hold: { type: TetraminoType, used: boolean } = { type: TetraminoType.NONE, used: false };
     next: TetraminoType[] = [];
+    display = "";
     refillPieces = true;
-    state: BoardState = { cells: this.cells, next: this.next, hold: this.hold };
+    state: BoardState = { cells: this.cells, next: this.next, hold: this.hold, display: this.display };
     timeouts: ({ name: "waitCommand" | "game", timeout: ReturnType<typeof setTimeout> })[] = [];
 
     constructor(props: BoardProps) {
@@ -124,17 +130,15 @@ export class Board extends Component<BoardProps, BoardState> {
                     return <TetraminoDisplay width={i ? 75 : 100} height={i ? 75 : 100} type={this.state.next[i]} key={i} />
                 })}
             </div>
-            <DynamicContentComponent />
+            <p>{this.display}</p>
         </div>
     }
     // Start game -> I mean this is pretty self-explanatory
-    startGame() {
+    async startGame() {
         this.setPaused(false);
         this.setMap();
-        this.meta = { ...defaultBoardMeta };
-        this.refillPieces = true;
-        this.finishedScript = false;
-        this.finishScriptEarly = false;
+        if (!this.finishedScript) await this.finishScript();
+        this.resetDefaultVariables();
         this.updateNext();
         const { current } = this.activeTetramino;
         if (!current) return;
@@ -143,8 +147,18 @@ export class Board extends Component<BoardProps, BoardState> {
         current.setState({ direction, coords, type });
         void this.startScriptExecution();
     }
+    resetDefaultVariables() {
+        this.meta = { ...defaultBoardMeta };
+        this.hold = { type: TetraminoType.NONE, used: false };
+        this.display = "";
+        this.whenConditions = [];
+        this.refillPieces = true;
+        this.finishedScript = false;
+        this.finishScriptEarly = false;
+        this.setState({ hold: this.hold });
+    }
     // scriptExecution.tsx
-    finishedScript = false;
+    finishedScript = true;
     finishScriptEarly = false;
     startScriptExecution = startScriptExecution;
     executeFunction = executeFunction;
@@ -170,6 +184,7 @@ export class Board extends Component<BoardProps, BoardState> {
     injectGarbage = injectGarbage;
     updateClearedLines = updateClearedLines;
     updateNext = updateNext;
+    finishScript = finishScript;
     gameOver = gameOver;
     setDimensions = setDimensions;
 }
