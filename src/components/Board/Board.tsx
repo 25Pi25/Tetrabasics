@@ -102,7 +102,7 @@ export class Board extends Component<BoardProps, BoardState> {
         };
     }
     componentDidMount() {
-        this.setState({ cells: this.cells });
+        this.setState(({ cells: this.cells }));
         // TODO: Run conditional if the board disables new next pieces
         this.setMap();
         this.timeouts.push({ name: "game", timeout: setTimeout(this.startGame.bind(this), 1000) });
@@ -114,7 +114,10 @@ export class Board extends Component<BoardProps, BoardState> {
     render() {
         const renderedHeight = this.height - Board.matrixBuffer + Board.matrixVisible;
         return <div className='game'>
-            <TetraminoDisplay width={100} height={100} type={this.state.hold.type} overrideColor={this.state.hold.used ? TetraColor.HELD : undefined} />
+            <div className='left-displays'>
+                <TetraminoDisplay width={100} height={100} type={this.state.hold.type} overrideColor={this.state.hold.used ? TetraColor.HELD : undefined} />
+                <p className='text-display'>{this.display}</p>
+            </div>
             <Stage className='board'
                 width={this.width * Board.cellSize}
                 height={renderedHeight * Board.cellSize}>
@@ -130,7 +133,6 @@ export class Board extends Component<BoardProps, BoardState> {
                     return <TetraminoDisplay width={i ? 75 : 100} height={i ? 75 : 100} type={this.state.next[i]} key={i} />
                 })}
             </div>
-            <p>{this.display}</p>
         </div>
     }
     // Start game -> I mean this is pretty self-explanatory
@@ -143,19 +145,18 @@ export class Board extends Component<BoardProps, BoardState> {
         const { current } = this.activeTetramino;
         if (!current) return;
         current.getNextPiece();
-        const { direction, coords, type } = current;
-        current.setState({ direction, coords, type });
         void this.startScriptExecution();
     }
     resetDefaultVariables() {
         this.meta = { ...defaultBoardMeta };
         this.hold = { type: TetraminoType.NONE, used: false };
+        this.next = [];
         this.display = "";
         this.whenConditions = [];
         this.refillPieces = true;
         this.finishedScript = false;
         this.finishScriptEarly = false;
-        this.setState({ hold: this.hold });
+        this.setState(({ hold: this.hold, next: this.next }));
     }
     // scriptExecution.tsx
     finishedScript = true;

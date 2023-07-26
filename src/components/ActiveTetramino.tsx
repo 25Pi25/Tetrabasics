@@ -86,14 +86,14 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
         for (let i = 0; i < 100; i++) {
             if (!this.move(0, -1, { isCycled: true })) break;
         }
-        this.setState(() => ({ coords: this.coords }));
+        this.setState(({ coords: this.coords }));
         if (lock) this.place();
     }
     move(deltaX = 0, deltaY = 0, { isCycled = false, isRotation = false } = {}): boolean {
         const LOCK_TIMEOUT = 500;
         if (!this.canMove(deltaX, deltaY)) return false;
         this.coords = { x: this.coords.x + deltaX, y: this.coords.y + deltaY }
-        if (!isCycled) this.setState(() => ({ coords: this.coords }));
+        if (!isCycled) this.setState(({ coords: this.coords }));
         if (!isRotation) this.tSpinType = TSpinType.NONE;
 
         if (this.rotations > 0) this.rotations--;
@@ -138,7 +138,7 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
         const oldDirection = this.direction
         const newDirection: TetraminoDirection = (this.direction + direction + 4) % 4;
         this.direction = newDirection;
-        this.setState({ direction: this.direction })
+        this.setState(({ direction: this.direction }))
         if (this.move(0, 0, { isRotation: true })) {
             this.tSpinType = this.checkTSpin(0);
             return;
@@ -158,7 +158,7 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
             }
         }
         this.direction = oldDirection;
-        this.setState({ direction: this.direction });
+        this.setState(({ direction: this.direction }));
     }
 
 
@@ -171,11 +171,10 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
             cellTarget.isOccupied = true;
             cellTarget.color = this.getTetraminoInfo().color;
             this.board.hold.used = false;
-            this.board.setState(({ cells: this.board.cells, hold: this.board.hold }));
         }
+        this.board.setState(({ cells: this.board.cells, hold: this.board.hold }), () => this.getNextPiece());
         this.board.meta.pieces++;
         this.board.updateClearedLines(this.tSpinType);
-        this.getNextPiece();
     }
 
     hold = () => this.getNextPiece(true);
@@ -200,7 +199,7 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
                 this.board.hold = { type: this.type, used: true };
                 this.type = holdType;
             }
-            this.board.setState({ hold: this.board.hold })
+            this.board.setState(({ hold: this.board.hold }))
         } else {
             if (this.board.next.length) {
                 const nextTetramino = this.board.next.shift();
@@ -209,7 +208,7 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
             } else {
                 this.board.hold = { type: TetraminoType.NONE, used: true };
                 this.type = holdType;
-                this.board.setState({ hold: this.board.hold })
+                this.board.setState(({ hold: this.board.hold }))
             }
         }
 
@@ -220,6 +219,6 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
         // TODO: Make this check if there's available space, else game over
         if (!this.move(0, 0)) void this.board.gameOver();
         const { type, direction, coords } = this;
-        this.setState({ type, direction, coords });
+        this.setState(({ type, direction, coords }));
     }
 }

@@ -49,11 +49,10 @@ export const commandType = [
 ] as const;
 export type CommandType = typeof commandType[number];
 
-type ArgumentType = "dynamicNumber" | "equality" | "command" | "variable" | "plainText" | "string";
-export interface Argument {
-    type: ArgumentType;
-    value: DynamicNumber | Equality | Command | string;
-}
+export type Argument = { type: "dynamicNumber", value: DynamicNumber } |
+{ type: "equality", value: Equality } |
+{ type: "command", value: Command } |
+{ type: "variable" | "plainText" | "string", value: string }
 
 export interface Command {
     type: CommandType;

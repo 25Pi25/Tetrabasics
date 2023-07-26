@@ -1,0 +1,32 @@
+@font-face {
+    font-family: ProFontWindows;
+    src: url(/ProFontWindows.ttf);
+}
+
+:root {
+    font-family: ProFontWindows;
+    font-size: 1.5em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.title-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1em;
+}
+
+.title-button {
+    display: grid;
+    place-content: center;
+
+    font-size: 1.5em;
+    width: 7em;
+    height: 2em;
+    border: 2px solid black;
+    border-radius: 15px;
+    background-color: rgba(30,30,30,0.5);
+    color: white
+}

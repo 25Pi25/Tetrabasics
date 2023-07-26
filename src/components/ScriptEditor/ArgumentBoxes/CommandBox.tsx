@@ -38,7 +38,7 @@ export function CommandBox({ script, activeCommand, setScript, fullFunction, com
                 case "command":
                     return <CommandBox
                         script={script}
-                        activeCommand={argument.value as Command}
+                        activeCommand={argument.value}
                         setScript={setScript}
                         commandIndex={i}
                         fullFunction={argument}
@@ -63,13 +63,13 @@ export function CommandBox({ script, activeCommand, setScript, fullFunction, com
                         argIndex={i}
                         key={i} />
                 case "plainText":
-                    return <p key={i}>{argument.value as string}</p>
+                    return <p key={i}>{argument.value}</p>
                 case "string":
                     return <input
                         type='text'
                         maxLength={10000}
                         key={i}
-                        value={argument.value as string}
+                        value={argument.value}
                         onChange={(e: ChangeEvent<HTMLInputElement>) => {
                             if (e.target.value) argument.value = e.target.value;
                             setScript(script);

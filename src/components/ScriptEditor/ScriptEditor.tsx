@@ -1,20 +1,17 @@
-import { Dispatch, SetStateAction, useState } from 'react';
+import { ChangeEvent, useState } from 'react';
 import './ScriptEditor.css';
-import { Command, variables } from './scriptTypes';
+import { Command, Script, variables } from './scriptTypes';
 import { CommandBox } from './ArgumentBoxes/CommandBox';
 
-export default function DynamicContentComponent({script, setScript}: {
-    script: Command[][],
-    setScript: Dispatch<SetStateAction<Command[][]>>
-}) {
+export default function DynamicContentComponent() {
     const [activeButton, setActiveButton] = useState<number>(0);
-    // const [script, setScript] = useState<Command[][]>([[{ type: "", args: [] }]]);
+    const [script, setScript] = useState<Command[][]>([[{ type: "", args: [] }]]);
 
     const buttons = script.map((_, i) => `Function ${i || "Main"}`);
     const scriptClone = [...script];
 
-    return <div style={{}}>
-        <div style={{}}>
+    return <div>
+        <div>
             {buttons.map((button, i) => (
                 <button
                     key={i}
@@ -48,10 +45,27 @@ export default function DynamicContentComponent({script, setScript}: {
             const selector = document.createElement("a");
             const link = URL.createObjectURL(blob);
             selector.href = link;
-            selector.download = "script.json";
+            selector.download = "script.ttb";
             selector.click();
             selector.parentElement?.removeChild(selector);
             URL.revokeObjectURL(link);
         }}>Export!</button>
+        <input type="file"
+            accept=".ttb"
+            onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e: ProgressEvent<FileReader>) => {
+                    try {
+                        const json = JSON.parse(e.target?.result as string) as Script;
+                        json.functions = json.functions.map(x => [...x, { type: "", args: [] }])
+                        setScript(json.functions);
+                    } catch (err) {
+                        console.error("Error trying to parse TTB file.")
+                    }
+                }
+                reader.readAsText(file);
+            }} />
     </div>
 }
