@@ -13,7 +13,7 @@ interface BoardCellProps {
 }
 export default function BoardCell({ board, coords, isOccupied, color }: BoardCellProps) {
     return <Sprite
-        texture={getTexture(color, coords.y, board.height)}
+        texture={getTexture(color)}
         scale={new Point(Board.cellSize / 30, Board.cellSize / 30)}
         alpha={isOccupied ? 1 : 0.5}
         x={coords.x * Board.cellSize}

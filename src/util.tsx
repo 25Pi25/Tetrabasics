@@ -1,12 +1,10 @@
 import { BaseTexture, Rectangle, SCALE_MODES, Texture } from 'pixi.js';
 import { Coordinate, TetraColor, TetraminoDirection } from './types';
 import grid from "./assets/TetrisPlusClassic.png";
-import empty from "./assets/empty.png";
-import { Board } from './components/Board/Board';
 
-export function getTexture(color: TetraColor, y = 0, boardHeight = 20) {
+export function getTexture(color: TetraColor) {
     const texture = color == TetraColor.NONE ?
-        y >= boardHeight - Board.matrixBuffer ? Texture.EMPTY : new Texture(BaseTexture.from(empty)) :
+        Texture.EMPTY :
         new Texture(BaseTexture.from(grid), new Rectangle(31 * color, 0, 30, 30))
     texture.baseTexture.scaleMode = SCALE_MODES.NEAREST;
     return texture;

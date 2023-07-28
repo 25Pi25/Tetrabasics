@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react';
-import './App.css';
-import Config from './Config.tsx';
+import ConfigBar from './ConfigBar.tsx';
 import { Board } from './components/Board/Board.tsx';
+import Config from './Config.tsx';
 
 export default function FreePlay() {
     const [board, setBoard] = useState<boolean>(false);
 
     useEffect(() => {
         function thing(e: KeyboardEvent) {
-            if (e.key != "r") return;
+            if (e.key != Config.config?.controls.reset) return;
             setBoard(board => !board);
-            console.log("done")
         }
         document.addEventListener("keydown", thing);
         return () => document.removeEventListener("keydown", thing);
@@ -18,6 +17,6 @@ export default function FreePlay() {
 
     return <div style={{ display: "flex", gap: "2em" }}>
         <Board key={board ? 0 : 1} startNow={true} />
-        <Config />
+        <ConfigBar />
     </div>
 }

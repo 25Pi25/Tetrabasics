@@ -1,6 +1,6 @@
-import './App.css';
+import './Menu.css';
 
-export default function App() {
+export default function Menu() {
   return <>
     <h1>Tetrabasics</h1>
     <div className='title-buttons'>

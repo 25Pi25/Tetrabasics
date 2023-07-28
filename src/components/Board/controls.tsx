@@ -1,3 +1,4 @@
+import Config from '../../Config';
 import { Board } from './Board';
 
 export function setPaused(this: Board, paused: boolean) {
@@ -14,76 +15,90 @@ export function setPaused(this: Board, paused: boolean) {
         document.removeEventListener("keyup", this.handleKeyUp);
     }
 }
-export function handleKeyDown(this: Board, { key }: KeyboardEvent) {
+export function handleKeyDown(this: Board, event: KeyboardEvent) {
+    const { key } = event;
     if (this.keyPresses.has(key)) return;
     this.keyPresses.add(key);
 
-    const ARR = 0;
-    const DAS = 100;
-    const SDF = -1;
+    const { arr: ARR, das: DAS, sdf: SDF, controls: {
+        left,
+        right,
+        hardDrop,
+        softDrop,
+        rotateCW,
+        rotateCCW,
+        hold,
+        flip
+    } } = Config.config;
     const activeMino = this.activeTetramino.current;
-    const { controlEvents, controlEvents: { left, right } } = this;
+    const { controlEvents, controlEvents: { onLeft, onRight } } = this;
     if (!activeMino) return;
+    let preventDefault = true;
     switch (key) {
-        case "a":
-            if (left.das) return;
-            this.clearShiftRepeat(left);
-            this.clearShiftRepeat(right);
+        case left:
+            if (onLeft.das) return;
+            this.clearShiftRepeat(onLeft);
+            this.clearShiftRepeat(onRight);
             activeMino.moveLeft();
-            left.das = setTimeout(() => {
+            onLeft.das = setTimeout(() => {
                 activeMino.moveLeft();
-                left.delay = setInterval(() => !this.paused && activeMino.moveLeft(), ARR);
+                onLeft.delay = setInterval(() => !this.paused && activeMino.moveLeft(), ARR);
             }, DAS);
             break;
-        case "d":
-            if (right.das) return;
-            this.clearShiftRepeat(left);
-            this.clearShiftRepeat(right);
+        case right:
+            if (onRight.das) return;
+            this.clearShiftRepeat(onLeft);
+            this.clearShiftRepeat(onRight);
             activeMino.moveRight();
-            right.das = setTimeout(() => {
+            onRight.das = setTimeout(() => {
                 activeMino.moveRight();
-                right.delay = setInterval(() => !this.paused && activeMino.moveRight(), ARR);
+                onRight.delay = setInterval(() => !this.paused && activeMino.moveRight(), ARR);
             }, DAS);
             break;
-        case "s":
+        case softDrop:
             if (controlEvents.down) return;
             activeMino.moveDown();
             if (SDF != -1) controlEvents.down = setInterval(() => !this.paused && activeMino.moveDown(), 500 / SDF);
             else controlEvents.down = setInterval(() => !this.paused && activeMino.hardDrop(false), 0);
             break;
-        case "w":
+        case hardDrop:
             this.activeTetramino.current?.hardDrop();
             break;
-        case "3":
+        case rotateCW:
             this.activeTetramino.current?.rotateRight();
             break;
-        case "2":
+        case rotateCCW:
             this.activeTetramino.current?.rotateLeft();
             break;
-        case "5":
+        case flip:
             this.activeTetramino.current?.rotate180();
             break;
-        case "6":
+        case hold:
             this.activeTetramino.current?.hold();
             break;
+        default:
+            preventDefault = false;
+            break;
     }
+    if (preventDefault) event.preventDefault();
 }
 export function handleKeyUp(this: Board, { key }: KeyboardEvent) {
+    const { left, right, softDrop } = Config.config.controls;
     this.keyPresses.delete(key);
-    const { controlEvents, controlEvents: { left, right } } = this;
-    if (key == 'a') this.clearShiftRepeat(left);
-    if (key == 'd') this.clearShiftRepeat(right);
-    if (key == 's') {
+    const { controlEvents, controlEvents: { onLeft, onRight } } = this;
+    if (key == left) this.clearShiftRepeat(onLeft);
+    if (key == right) this.clearShiftRepeat(onRight);
+    if (key == softDrop) {
         if (controlEvents.down) clearInterval(controlEvents.down);
         controlEvents.down = null;
     }
 }
 
 export const controlEvents: {
-    left: { das: ReturnType<typeof setTimeout> | null, delay: ReturnType<typeof setInterval> | null },
-    right: { das: ReturnType<typeof setTimeout> | null, delay: ReturnType<typeof setInterval> | null },
+    onLeft: { das: ReturnType<typeof setTimeout> | null, delay: ReturnType<typeof setInterval> | null },
+    onRight: { das: ReturnType<typeof setTimeout> | null, delay: ReturnType<typeof setInterval> | null },
     down: ReturnType<typeof setInterval> | null
-} = { left: { das: null, delay: null }, right: { das: null, delay: null }, down: null }
+} = { onLeft: { das: null, delay: null }, onRight: { das: null, delay: null }, down: null }
 
 export function clearShiftRepeat(this: Board, eventDirection: { das: ReturnType<typeof setTimeout> | null, delay: ReturnType<typeof setInterval> | null }) {
     if (eventDirection.das) {

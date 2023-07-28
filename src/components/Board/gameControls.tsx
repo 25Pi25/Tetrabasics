@@ -132,7 +132,7 @@ export function updateNext(this: Board) {
     this.setState({ next: this.next });
 }
 
-export async function gameOver(this: Board, win = false) {
+export function gameOver(this: Board, win = false) {
     if (this.paused) return;
     this.setPaused(true);
     for (const row of this.cells) {
@@ -141,14 +141,7 @@ export async function gameOver(this: Board, win = false) {
         }
     }
     if (this.activeTetramino.current) this.activeTetramino.current.type = TetraminoType.NONE;
-    if (!this.finishedScript) await this.finishScript();
     this.setState({ cells: this.cells });
-}
-
-export async function finishScript(this: Board) {
-    this.finishScriptEarly = true;
-    await new Promise<void>(res => setInterval(() => this.finishedScript && res(), 100));
-    this.finishScriptEarly = false;
 }
 
 export function setDimensions(this: Board, width: number, height: number) {

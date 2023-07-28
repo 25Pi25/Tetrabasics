@@ -7,8 +7,9 @@ import TetraminoDisplay from '../TetraminoDisplay';
 import BoardCell from './BoardCell';
 import { Argument, Command, Script } from '../ScriptEditor/scriptTypes';
 import { clearShiftRepeat, controlEvents, handleKeyDown, handleKeyUp, setPaused } from './controls';
-import { fillNextPieces, finishScript, gameOver, injectGarbage, resetBoard, setDimensions, setMap, updateClearedLines, updateNext } from './gameControls';
+import { fillNextPieces, gameOver, injectGarbage, resetBoard, setDimensions, setMap, updateClearedLines, updateNext } from './gameControls';
 import { calculateCondition, checkWhenConditions, executeCommand, executeFunction, getDynamicNumber, getVariable, startScriptExecution } from './scriptExecution';
+import { BackgroundCells } from './BackgroundCells';
 
 // TODO: add finesse faults??
 export interface BoardMeta {
@@ -109,11 +110,6 @@ export class Board extends Component<BoardProps, BoardState> {
         // TODO: Run conditional if the board disables new next pieces
         this.setMap();
     }
-    componentDidUpdate() {
-        if (!this.startGameNextRender || !this.activeTetramino.current) return;
-        void this.startGame();
-        this.startGameNextRender = false;
-    }
     render() {
         const renderedHeight = this.height - Board.matrixBuffer + Board.matrixVisible;
         return <div className='game'>
@@ -124,6 +120,7 @@ export class Board extends Component<BoardProps, BoardState> {
             <Stage className='board'
                 width={this.width * Board.cellSize}
                 height={renderedHeight * Board.cellSize}>
+                <BackgroundCells board={this} />
                 {this.cells
                     .filter((_, i) => i <= renderedHeight)
                     .map((arr, y) => arr.map(({ color, isOccupied }, x) => {
@@ -139,10 +136,9 @@ export class Board extends Component<BoardProps, BoardState> {
         </div>
     }
     // Start game -> I mean this is pretty self-explanatory
-    async startGame() {
+    startGame() {
         this.setPaused(false);
         this.setMap();
-        if (!this.finishedScript) await this.finishScript();
         this.updateNext();
         const { current } = this.activeTetramino;
         if (!current) return;
@@ -150,8 +146,6 @@ export class Board extends Component<BoardProps, BoardState> {
         void this.startScriptExecution();
     }
     // scriptExecution.tsx
-    finishedScript = true;
-    finishScriptEarly = false;
     startScriptExecution = startScriptExecution;
     executeFunction = executeFunction;
     executeCommand = executeCommand;
@@ -176,7 +170,6 @@ export class Board extends Component<BoardProps, BoardState> {
     injectGarbage = injectGarbage;
     updateClearedLines = updateClearedLines;
     updateNext = updateNext;
-    finishScript = finishScript;
     gameOver = gameOver;
     setDimensions = setDimensions;
 }

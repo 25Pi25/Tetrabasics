@@ -4,22 +4,18 @@ import { Board, BoardMeta } from './Board';
 export async function startScriptExecution(this: Board) {
     const { functions } = this.script;
     if (!functions[0]) {
-        this.finishedScript = true;
         return;
     }
     void await this.executeFunction(functions[0]);
-    this.finishedScript = true;
 }
 
 export async function executeFunction(this: Board, commands: Command[]) {
     for (const command of commands) {
         void await this.executeCommand(command)
-        if (this.finishScriptEarly) return;
     }
 }
 
 export async function executeCommand(this: Board, { type, args }: Command) {
-    if (this.finishScriptEarly) return;
     const { variables, functions } = this.script;
     const argTypes = getNewArgs(type).map(({ type }) => type)
     if (args.some(({ type }, i) => type != argTypes[i])) return;
@@ -35,9 +31,6 @@ export async function executeCommand(this: Board, { type, args }: Command) {
         case "wait":
             await new Promise<void>(res => {
                 setTimeout(res, this.getDynamicNumber(args[0].value as DynamicNumber) * 1000);
-                setInterval(() => {
-                    if (this.finishScriptEarly) res();
-                }, 100)
             });
             return;
         case "winGame":

@@ -34,6 +34,9 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
         this.direction = TetraminoDirection.UP;
         this.type = TetraminoType.NONE;
     }
+    componentDidMount() {
+        if (this.board.startGameNextRender) setTimeout(() => void this.board.startGame(), 0)
+    }
     render() {
         if (this.state.type == TetraminoType.NONE) return null;
         const { pieceOffsets, color } = this.getTetraminoInfo();
