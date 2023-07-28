@@ -64,6 +64,7 @@ export interface BoardCellInfo {
 
 interface BoardProps {
     script?: Script;
+    startNow?: boolean;
 }
 interface BoardState {
     cells: BoardCellInfo[][];
@@ -83,33 +84,35 @@ export class Board extends Component<BoardProps, BoardState> {
     meta: BoardMeta = { ...defaultBoardMeta };
     script: { functions: Command[][], variables: Record<string, number> };
     whenConditions: Argument[][] = [];
+    startGameNextRender = false;
 
     hold: { type: TetraminoType, used: boolean } = { type: TetraminoType.NONE, used: false };
     next: TetraminoType[] = [];
     display = "";
     refillPieces = true;
     state: BoardState = { cells: this.cells, next: this.next, hold: this.hold, display: this.display };
-    timeouts: ({ name: "waitCommand" | "game", timeout: ReturnType<typeof setTimeout> })[] = [];
+    timeouts: ({ name: "waitCommand", timeout: ReturnType<typeof setTimeout> })[] = [];
 
     constructor(props: BoardProps) {
         super(props);
-        const { script } = props;
+        const { script, startNow } = props;
         this.activeTetramino = createRef<ActiveTetramino>()
         const { functions, variables } = script ?? { functions: [], variables: [] }
         this.script = {
             functions,
             variables: variables.reduce((a: Record<string, number>, b) => ({ ...a, [b]: 0 }), {})
         };
+        if (startNow) this.startGameNextRender = true;
     }
     componentDidMount() {
         this.setState(({ cells: this.cells }));
         // TODO: Run conditional if the board disables new next pieces
         this.setMap();
-        this.timeouts.push({ name: "game", timeout: setTimeout(this.startGame.bind(this), 1000) });
     }
-    componentWillUnmount() {
-        const gameStart = this.timeouts.find(x => x.name == "game")
-        if (gameStart) clearTimeout(gameStart.timeout);
+    componentDidUpdate() {
+        if (!this.startGameNextRender || !this.activeTetramino.current) return;
+        void this.startGame();
+        this.startGameNextRender = false;
     }
     render() {
         const renderedHeight = this.height - Board.matrixBuffer + Board.matrixVisible;
@@ -140,23 +143,11 @@ export class Board extends Component<BoardProps, BoardState> {
         this.setPaused(false);
         this.setMap();
         if (!this.finishedScript) await this.finishScript();
-        this.resetDefaultVariables();
         this.updateNext();
         const { current } = this.activeTetramino;
         if (!current) return;
         current.getNextPiece();
         void this.startScriptExecution();
-    }
-    resetDefaultVariables() {
-        this.meta = { ...defaultBoardMeta };
-        this.hold = { type: TetraminoType.NONE, used: false };
-        this.next = [];
-        this.display = "";
-        this.whenConditions = [];
-        this.refillPieces = true;
-        this.finishedScript = false;
-        this.finishScriptEarly = false;
-        this.setState(({ hold: this.hold, next: this.next }));
     }
     // scriptExecution.tsx
     finishedScript = true;
