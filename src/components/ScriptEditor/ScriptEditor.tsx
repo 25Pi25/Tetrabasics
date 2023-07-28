@@ -1,12 +1,10 @@
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, Dispatch, SetStateAction, useState } from 'react';
 import './ScriptEditor.css';
 import { Command, Script, variables } from './scriptTypes';
 import { CommandBox } from './ArgumentBoxes/CommandBox';
 
-export default function DynamicContentComponent() {
+export default function DynamicContentComponent({script, setScript}: {script: Command[][], setScript: Dispatch<SetStateAction<Command[][]>>}) {
     const [activeButton, setActiveButton] = useState<number>(0);
-    const [script, setScript] = useState<Command[][]>([[{ type: "", args: [] }]]);
-
     const buttons = script.map((_, i) => `Function ${i || "Main"}`);
     const scriptClone = [...script];
 

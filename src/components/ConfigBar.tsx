@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import './ConfigBar.css';
-import Config, { ConfigControls, ConfigOptions } from './Config';
+import Config, { ConfigControls, ConfigOptions } from '../config';
 
 export default function ConfigBar() {
     const [configRef, setConfigRef] = useState<ConfigOptions>(JSON.parse(JSON.stringify(Config.config)) as ConfigOptions);

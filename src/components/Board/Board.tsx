@@ -112,7 +112,7 @@ export class Board extends Component<BoardProps, BoardState> {
     }
     render() {
         const renderedHeight = this.height - Board.matrixBuffer + Board.matrixVisible;
-        return <div className='game'>
+        return <div className='game' style={{ height: `${Board.cellSize * renderedHeight + 10}px`}}>
             <div className='left-displays'>
                 <TetraminoDisplay width={100} height={100} type={this.state.hold.type} overrideColor={this.state.hold.used ? TetraColor.HELD : undefined} />
                 <p className='text-display'>{this.display}</p>

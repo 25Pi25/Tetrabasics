@@ -1,4 +1,4 @@
-import Config from '../../Config';
+import Config from '../../config';
 import { Board } from './Board';
 
 export function setPaused(this: Board, paused: boolean) {
@@ -31,8 +31,8 @@ export function handleKeyDown(this: Board, event: KeyboardEvent) {
         flip
     } } = Config.config;
     const activeMino = this.activeTetramino.current;
-    const { controlEvents, controlEvents: { onLeft, onRight } } = this;
     if (!activeMino) return;
+    const { controlEvents, controlEvents: { onLeft, onRight } } = this;
     let preventDefault = true;
     switch (key) {
         case left:
@@ -42,6 +42,7 @@ export function handleKeyDown(this: Board, event: KeyboardEvent) {
             activeMino.moveLeft();
             onLeft.das = setTimeout(() => {
                 activeMino.moveLeft();
+                if (!ARR) while (activeMino.moveLeft()) { /* empty */ }
                 onLeft.delay = setInterval(() => !this.paused && activeMino.moveLeft(), ARR);
             }, DAS);
             break;
@@ -52,6 +53,7 @@ export function handleKeyDown(this: Board, event: KeyboardEvent) {
             activeMino.moveRight();
             onRight.das = setTimeout(() => {
                 activeMino.moveRight();
+                if (!ARR) while (activeMino.moveRight()) { /* empty */ }
                 onRight.delay = setInterval(() => !this.paused && activeMino.moveRight(), ARR);
             }, DAS);
             break;
