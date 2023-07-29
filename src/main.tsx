@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Menu from './Menu.tsx'
 import FreePlay from './FreePlay.tsx'
-import Config from './config.tsx'
+import Config from './Config.tsx'
 import Editor from './Editor.tsx';
 
 Config.createConfig();

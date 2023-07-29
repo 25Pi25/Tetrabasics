@@ -1,7 +1,7 @@
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import ConfigBar from './components/ConfigBar.tsx';
 import { Board } from './components/Board/Board.tsx';
-import Config from './config.tsx';
+import Config from './Config.tsx';
 import { Script } from './components/ScriptEditor/scriptTypes.tsx';
 
 export default function FreePlay() {
