@@ -34,7 +34,7 @@ export function handleKeyDown(this: Board, event: KeyboardEvent) {
     if (!activeMino) return;
     const { controlEvents, controlEvents: { onLeft, onRight } } = this;
     let preventDefault = true;
-    switch (key) {
+    switch (key.toLowerCase()) {
         case left:
             if (onLeft.das) return;
             this.clearShiftRepeat(onLeft);
@@ -86,7 +86,9 @@ export function handleKeyDown(this: Board, event: KeyboardEvent) {
 }
 export function handleKeyUp(this: Board, { key }: KeyboardEvent) {
     const { left, right, softDrop } = Config.config.controls;
+    key = key.toLowerCase();
     this.keyPresses.delete(key);
+    //TODO: refactor code here
     const { controlEvents, controlEvents: { onLeft, onRight } } = this;
     if (key == left) this.clearShiftRepeat(onLeft);
     if (key == right) this.clearShiftRepeat(onRight);
