@@ -1,20 +1,29 @@
 import Config from '../../Config';
 import { Board } from './Board';
 
-export function setPaused(this: Board, paused: boolean) {
-    const isPaused = this.paused;
-    this.paused = paused;
+export enum PauseType {
+    OFF,
+    UNFOCUSED,
+    GAMEOVER
+}
 
-    if (isPaused && !paused) {
+export function setPaused(this: Board, paused: PauseType) {
+    const { OFF } = PauseType;
+    const lastPauseState = this.paused;
+    this.paused = paused;
+    this.redraw();
+
+    if (lastPauseState != OFF && paused == OFF) {
         this.keyPresses = new Set<string>();
         document.addEventListener("keydown", this.handleKeyDown);
         document.addEventListener("keyup", this.handleKeyUp);
-    } else if (paused) {
+    } else if (paused != OFF) {
         this.keyPresses = new Set<string>();
         document.removeEventListener("keydown", this.handleKeyDown);
         document.removeEventListener("keyup", this.handleKeyUp);
     }
 }
+
 export function handleKeyDown(this: Board, event: KeyboardEvent) {
     const { key } = event;
     if (this.keyPresses.has(key)) return;

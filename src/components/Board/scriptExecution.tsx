@@ -1,5 +1,6 @@
 import { Argument, Command, DynamicNumber, Equality, Operation, Operator, getNewArgs } from '../ScriptEditor/scriptTypes';
 import { Board, BoardMeta } from './Board';
+import { PauseType } from './controls';
 
 export async function startScriptExecution(this: Board) {
     const { functions } = this.script;
@@ -19,6 +20,7 @@ export async function executeCommand(this: Board, { type, args }: Command) {
     const { variables, functions } = this.script;
     const argTypes = getNewArgs(type).map(({ type }) => type)
     if (args.some(({ type }, i) => type != argTypes[i])) return;
+    if (this.paused == PauseType.GAMEOVER) return;
     switch (type) {
         case "if":
             if (this.calculateCondition(args))
@@ -56,7 +58,7 @@ export async function executeCommand(this: Board, { type, args }: Command) {
         case "setDisplay":
             this.display = (args[0].value as string)
                 .replace(/\{(\w+)\}/g, (_, propName: string) => (this.script.variables[propName] || 0).toString());
-            this.setState({ display: this.display });
+            this.redraw();
             break;
         case "":
         default:
@@ -90,18 +92,19 @@ export function calculateCondition(this: Board, args: Argument[]) {
         const dynamicNumber = arg.value as DynamicNumber;
         return this.getDynamicNumber(dynamicNumber);
     });
+    const { EQUALS, GREATER, GREATEREQUAL, LESS, LESSEQUAL, NOT } = Equality;
     switch (args[1].value as Equality) {
-        case Equality.EQUALS:
+        case EQUALS:
             return var1 == var2;
-        case Equality.GREATER:
+        case GREATER:
             return var1 > var2;
-        case Equality.GREATEREQUAL:
+        case GREATEREQUAL:
             return var1 >= var2;
-        case Equality.LESS:
+        case LESS:
             return var1 < var2;
-        case Equality.LESSEQUAL:
+        case LESSEQUAL:
             return var1 <= var2;
-        case Equality.NOT:
+        case NOT:
             return var1 != var2;
     }
 }

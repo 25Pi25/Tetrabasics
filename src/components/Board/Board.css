@@ -39,3 +39,7 @@
     background: black;
     color: white;
 }
+
+.unfocused {
+    background-color: white;
+}

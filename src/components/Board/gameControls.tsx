@@ -1,5 +1,6 @@
 import { TSpinType, TetraColor, TetraminoType, tetraminoInfo } from '../../types';
 import { Board, BoardCellInfo } from './Board';
+import { PauseType } from './controls';
 
 export function resetBoard(this: Board) {
     this.cells.flat().forEach(cell => {
@@ -14,14 +15,14 @@ export function resetBoard(this: Board) {
         this.activeTetramino.current?.getNextPiece();
         this.hold = { type: TetraminoType.NONE, used: false };
         this.whenConditions = [];
-        this.setState({ cells: this.cells, next: this.next, hold: this.hold })
+        this.redraw();
     }
     void this.startGame();
 }
 
 export function fillNextPieces(this: Board, next: string) {
     this.next = next.split("").map(x => x.toUpperCase() as TetraminoType ?? TetraminoType.T);
-    this.setState({ next: this.next })
+    this.redraw();
 }
 
 export function setMap(this: Board, map = "") {
@@ -52,7 +53,7 @@ export function setMap(this: Board, map = "") {
         current.type = TetraminoType.NONE;
         current.getNextPiece();
     }
-    this.setState({ cells: this.cells, hold: this.hold });
+    this.redraw();
 }
 
 export function injectGarbage(this: Board, rows = 1, cheesePercent = 100) {
@@ -74,7 +75,7 @@ export function injectGarbage(this: Board, rows = 1, cheesePercent = 100) {
     }
     this.cells.unshift(...newCells);
     this.updateClearedLines();
-    this.setState({ cells: this.cells });
+    this.redraw();
 }
 // Updates the board to clear any lines that were potentially filled
 export function updateClearedLines(this: Board, tSpinType = TSpinType.NONE) {
@@ -88,7 +89,7 @@ export function updateClearedLines(this: Board, tSpinType = TSpinType.NONE) {
             color: TetraColor.NONE,
             isOccupied: false
         })));
-        this.setState({ cells: this.cells });
+        this.redraw();
         i--;
     }
 
@@ -129,19 +130,19 @@ export function updateNext(this: Board) {
         const shuffledPieces = "LJZSTIO".split("").sort(() => Math.random() - 0.5).map(x => x as TetraminoType);
         this.next.push(...shuffledPieces);
     }
-    this.setState({ next: this.next });
+    this.redraw();
 }
 
 export function gameOver(this: Board, win = false) {
     if (this.paused) return;
-    this.setPaused(true);
+    this.setPaused(PauseType.GAMEOVER);
     for (const row of this.cells) {
         for (const cell of row) {
             if (cell.isOccupied) cell.color = win ? TetraColor.GREEN : TetraColor.HELD;
         }
     }
     if (this.activeTetramino.current) this.activeTetramino.current.type = TetraminoType.NONE;
-    this.setState({ cells: this.cells });
+    this.redraw();
 }
 
 export function setDimensions(this: Board, width: number, height: number) {

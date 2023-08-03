@@ -6,10 +6,11 @@ import ActiveTetramino from '../ActiveTetramino';
 import TetraminoDisplay from '../TetraminoDisplay';
 import BoardCell from './BoardCell';
 import { Argument, Command, Script } from '../ScriptEditor/scriptTypes';
-import { clearShiftRepeat, controlEvents, handleKeyDown, handleKeyUp, setPaused } from './controls';
+import { PauseType, clearShiftRepeat, controlEvents, handleKeyDown, handleKeyUp, setPaused } from './controls';
 import { fillNextPieces, gameOver, injectGarbage, resetBoard, setDimensions, setMap, updateClearedLines, updateNext } from './gameControls';
 import { calculateCondition, checkWhenConditions, executeCommand, executeFunction, getDynamicNumber, getVariable, startScriptExecution } from './scriptExecution';
 import { BackgroundCells } from './BackgroundCells';
+import UnfocusedDialog from './UnfocusedDialog';
 
 // TODO: add finesse faults??
 export interface BoardMeta {
@@ -74,7 +75,7 @@ interface BoardState {
     display: string;
 }
 export class Board extends Component<BoardProps, BoardState> {
-    static cellSize = 30;
+    static cellSize = 25;
     static matrixBuffer = 20;
     static matrixVisible = 3;
     activeTetramino: RefObject<ActiveTetramino>;
@@ -86,6 +87,8 @@ export class Board extends Component<BoardProps, BoardState> {
     script: { functions: Command[][], variables: Record<string, number> };
     whenConditions: Argument[][] = [];
     startGameNextRender = false;
+    controlsEnabled = false;
+    boardRef: HTMLDivElement | null = null;
 
     hold: { type: TetraminoType, used: boolean } = { type: TetraminoType.NONE, used: false };
     next: TetraminoType[] = [];
@@ -106,13 +109,22 @@ export class Board extends Component<BoardProps, BoardState> {
         if (startNow) this.startGameNextRender = true;
     }
     componentDidMount() {
-        this.setState(({ cells: this.cells }));
+        this.redraw();
+        document.addEventListener('click', this.handleDocumentClick.bind(this));
         // TODO: Run conditional if the board disables new next pieces
         this.setMap();
     }
+    componentWillUnmount() {
+        document.removeEventListener('click', this.handleDocumentClick.bind(this));
+    }
+    handleDocumentClick(e: MouseEvent) {
+        if (!this.boardRef) return;
+        this.setPaused(this.boardRef.contains(e.target as Node) ? PauseType.OFF : PauseType.UNFOCUSED);
+    }
+    redraw = () => this.setState(({ ...this.state }));
     render() {
         const renderedHeight = this.height - Board.matrixBuffer + Board.matrixVisible;
-        return <div className='game' style={{ height: `${Board.cellSize * renderedHeight + 10}px`}}>
+        return <div className='game' style={{ height: `${Board.cellSize * renderedHeight + 10}px` }} ref={(ref) => { this.boardRef = ref }}>
             <div className='left-displays'>
                 <TetraminoDisplay width={100} height={100} type={this.state.hold.type} overrideColor={this.state.hold.used ? TetraColor.HELD : undefined} />
                 <p className='text-display'>{this.display}</p>
@@ -123,21 +135,22 @@ export class Board extends Component<BoardProps, BoardState> {
                 <BackgroundCells board={this} />
                 {this.cells
                     .filter((_, i) => i <= renderedHeight)
-                    .map((arr, y) => arr.map(({ color, isOccupied }, x) => {
-                        return <BoardCell board={this} coords={{ x, y }} isOccupied={isOccupied} color={color} key={`${x} ${y}`} />;
-                    }))}
+                    .map((arr, y) => arr.map(({ color, isOccupied }, x) =>
+                        <BoardCell board={this} coords={{ x, y }} isOccupied={isOccupied} color={color} key={`${x} ${y}`} />
+                    ))}
                 <ActiveTetramino board={this} ref={this.activeTetramino} />
+                {this.paused == PauseType.UNFOCUSED && <UnfocusedDialog board={this} renderedHeight={renderedHeight} />}
             </Stage>
             <div className='next'>
-                {Array.from({ length: 5 }, (_, i) => {
-                    return <TetraminoDisplay width={i ? 75 : 100} height={i ? 75 : 100} type={this.state.next[i]} key={i} />
-                })}
+                {Array.from({ length: 5 }, (_, i) =>
+                    <TetraminoDisplay width={i ? 75 : 100} height={i ? 75 : 100} type={this.state.next[i]} key={i} />
+                )}
             </div>
         </div>
     }
     // Start game -> I mean this is pretty self-explanatory
     startGame() {
-        this.setPaused(false);
+        this.setPaused(PauseType.OFF);
         this.setMap();
         this.updateNext();
         const { current } = this.activeTetramino;
@@ -155,7 +168,7 @@ export class Board extends Component<BoardProps, BoardState> {
     getDynamicNumber = getDynamicNumber;
 
     // controls.tsx
-    paused = true;
+    paused = PauseType.GAMEOVER;
     keyPresses: Set<string> = new Set<string>();
     setPaused = setPaused;
     handleKeyDown = handleKeyDown.bind(this);
