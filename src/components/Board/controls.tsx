@@ -1,4 +1,4 @@
-import Config from '../../Config';
+import Config from '../../config';
 import { Board } from './Board';
 
 export enum PauseType {

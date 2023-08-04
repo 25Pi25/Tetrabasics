@@ -111,15 +111,22 @@ export class Board extends Component<BoardProps, BoardState> {
     componentDidMount() {
         this.redraw();
         document.addEventListener('click', this.handleDocumentClick.bind(this));
+        window.addEventListener('blur', this.handleWindowFocus.bind(this));
+        window.addEventListener('focus', this.handleWindowFocus.bind(this));
         // TODO: Run conditional if the board disables new next pieces
         this.setMap();
     }
     componentWillUnmount() {
         document.removeEventListener('click', this.handleDocumentClick.bind(this));
+        window.removeEventListener('blur', this.handleWindowFocus.bind(this));
+        window.removeEventListener('focus', this.handleWindowFocus.bind(this));
     }
     handleDocumentClick(e: MouseEvent) {
         if (!this.boardRef) return;
         this.setPaused(this.boardRef.contains(e.target as Node) ? PauseType.OFF : PauseType.UNFOCUSED);
+    }
+    handleWindowFocus() {
+        this.setPaused(PauseType.UNFOCUSED);
     }
     redraw = () => this.setState(({ ...this.state }));
     render() {
