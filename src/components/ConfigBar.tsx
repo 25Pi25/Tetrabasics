@@ -16,8 +16,8 @@ export default function ConfigBar() {
             document.removeEventListener("keydown", finish);
             clearTimeout(timeout);
             const lowerKey = newKey?.key;
+            setConfigRef(config => ({ ...config, controls: { ...config.controls, [key]: lowerKey ?? oldRef } }))
             if (!lowerKey) return;
-            setConfigRef(config => ({ ...config, controls: { ...config.controls, [key]: lowerKey } }))
             Config.config.controls[key] = lowerKey;
             newKey?.preventDefault();
         }

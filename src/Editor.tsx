@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Board } from './components/Board/Board.tsx';
 import { Command } from './components/ScriptEditor/scriptTypes.tsx';
 import DynamicContentComponent from './components/ScriptEditor/ScriptEditor.tsx';
-import Config from './Config.tsx';
+import Config from './config.tsx';
 
 export default function FreePlay() {
     const [board, setBoard] = useState<boolean>(false);
