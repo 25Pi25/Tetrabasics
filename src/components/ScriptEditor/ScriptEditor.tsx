@@ -1,7 +1,8 @@
 import { ChangeEvent, Dispatch, SetStateAction, useState } from 'react';
 import './ScriptEditor.css';
-import { Command, Script, variables } from './scriptTypes';
+import { Command, variables } from './scriptTypes';
 import { CommandBox } from './ArgumentBoxes/CommandBox';
+import { isScript } from './scriptValidation';
 
 export default function DynamicContentComponent({script, setScript}: {script: Command[][], setScript: Dispatch<SetStateAction<Command[][]>>}) {
     const [activeButton, setActiveButton] = useState<number>(0);
@@ -56,7 +57,8 @@ export default function DynamicContentComponent({script, setScript}: {script: Co
                 const reader = new FileReader();
                 reader.onload = (e: ProgressEvent<FileReader>) => {
                     try {
-                        const json = JSON.parse(e.target?.result as string) as Script;
+                        const json = JSON.parse(e.target?.result as string) as object;
+                        if (!isScript(json)) return;
                         json.functions = json.functions.map(x => [...x, { type: "", args: [] }])
                         setScript(json.functions);
                     } catch (err) {

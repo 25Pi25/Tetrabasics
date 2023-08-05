@@ -49,6 +49,8 @@ export const commandType = [
 ] as const;
 export type CommandType = typeof commandType[number];
 
+export const argumentType = ["dynamicNumber", "equality", "command", "variable", "plainText", "string"] as const;
+export type ArgumentType = typeof argumentType[number];
 export type Argument = { type: "dynamicNumber", value: DynamicNumber } |
 { type: "equality", value: Equality } |
 { type: "command", value: Command } |
@@ -64,7 +66,7 @@ export interface Script {
     variables: string[];
 }
 
-export const argDefault: Record<string, (str?: string) => Argument> = {
+export const argDefault: Record<ArgumentType, (str?: string) => Argument> = {
     dynamicNumber: () => ({ type: "dynamicNumber", value: { numberType: "number", value: 0 } }),
     equality: () => ({ type: "equality", value: Equality.EQUALS }),
     command: () => ({ type: "command", value: { type: "", args: [] } }),
@@ -74,24 +76,43 @@ export const argDefault: Record<string, (str?: string) => Argument> = {
 }
 
 export function getNewArgs(commandType: CommandType): Argument[] {
-    const { dynamicNumber, equality, command, variable, plainText, string } = argDefault;
+    const { plainText } = argDefault;
+    const argTypes = getArgTypes(commandType).map(argType => {
+        if (argType == "plainText") {
+            switch (commandType) {
+                case "when":
+                    return plainText("run");
+                case "addVariable":
+                    return plainText("by");
+                case "setVariable":
+                    return plainText("to");
+                case "wait":
+                    return plainText("seconds");
+            }
+        }
+        return argDefault[argType]();
+    });
+    return argTypes;
+}
+
+export function getArgTypes(commandType: CommandType): ArgumentType[] {
     switch (commandType) {
         case "if":
         case "when":
-            return [dynamicNumber(), equality(), dynamicNumber(), plainText("run"), command()];
+            return ["dynamicNumber", "equality", "dynamicNumber", "plainText", "command"];
         case "function":
         case "asyncFunction":
         case "injectGarbage":
-            return [dynamicNumber()];
+            return ["dynamicNumber"];
         case "addVariable":
-            return [variable(), plainText("by"), dynamicNumber()];
+            return ["variable", "plainText", "dynamicNumber"];
         case "setVariable":
-            return [variable(), plainText("to"), dynamicNumber()];
+            return ["variable", "plainText", "dynamicNumber"];
         case "wait":
-            return [dynamicNumber(), plainText("seconds")];
+            return ["dynamicNumber", "plainText"];
         case "setMap":
         case "setDisplay":
-            return [string()];
+            return ["string"];
         case "loseGame":
         case "winGame":
         case "":
