@@ -120,6 +120,13 @@ export function updateClearedLines(this: Board, tSpinType = TSpinType.NONE) {
             meta.quad++;
             break;
     }
+    let linesSent = 0;
+    if (!rowsCleared) return;
+    if (rowsCleared == 4) linesSent = 4;
+    else if (rowsCleared > 0) linesSent = rowsCleared - (tSpinType != TSpinType.TSPIN ? 1 : 0);
+    if (tSpinType == TSpinType.TSPIN) linesSent *= 2;
+    if (meta.b2b > 1) linesSent++;
+    meta.lines += linesSent;
 }
 
 // Generates more pieces until the queue is filled
@@ -134,7 +141,7 @@ export function updateNext(this: Board) {
 }
 
 export function gameOver(this: Board, win = false) {
-    if (this.paused) return;
+    if (this.paused == PauseType.GAMEOVER) return;
     this.setPaused(PauseType.GAMEOVER);
     for (const row of this.cells) {
         for (const cell of row) {

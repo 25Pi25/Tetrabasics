@@ -80,7 +80,7 @@ export class Board extends Component<BoardProps, BoardState> {
     static matrixVisible = 3;
     activeTetramino: RefObject<ActiveTetramino>;
     width = 10;
-    height = 20;
+    height = 40;
     cells: BoardCellInfo[][] = [];
     map = "";
     meta: BoardMeta = { ...defaultBoardMeta };
@@ -109,7 +109,6 @@ export class Board extends Component<BoardProps, BoardState> {
         if (startNow) this.startGameNextRender = true;
     }
     componentDidMount() {
-        this.redraw();
         document.addEventListener('click', this.handleDocumentClick.bind(this));
         window.addEventListener('blur', this.handleWindowFocus.bind(this));
         // TODO: Run conditional if the board disables new next pieces
@@ -126,7 +125,7 @@ export class Board extends Component<BoardProps, BoardState> {
     handleWindowFocus() {
         this.setPaused(PauseType.UNFOCUSED);
     }
-    redraw = () => this.setState(({ ...this.state }));
+    redraw = () => this.setState(({ cells: this.cells, next: this.next, hold: this.hold, display: this.display }));
     render() {
         const renderedHeight = this.height - Board.matrixBuffer + Board.matrixVisible;
         return <div className='game' style={{ height: `${Board.cellSize * renderedHeight + 10}px` }} ref={(ref) => { this.boardRef = ref }}>
@@ -174,7 +173,7 @@ export class Board extends Component<BoardProps, BoardState> {
 
     // controls.tsx
     paused = PauseType.GAMEOVER;
-    keyPresses: Set<string> = new Set<string>();
+    keyPresses = new Set<string>();
     setPaused = setPaused;
     handleKeyDown = handleKeyDown.bind(this);
     handleKeyUp = handleKeyUp.bind(this);

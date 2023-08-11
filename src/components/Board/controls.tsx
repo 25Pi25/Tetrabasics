@@ -3,6 +3,7 @@ import { Board } from './Board';
 
 export enum PauseType {
     OFF,
+    ON,
     UNFOCUSED,
     GAMEOVER
 }

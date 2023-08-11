@@ -4,6 +4,7 @@ import { Point } from 'pixi.js';
 import { getDirectionOffset, getTexture } from '../util';
 import { Component, Fragment } from 'react';
 import { Board } from './Board/Board';
+import { PauseType } from './Board/controls';
 
 interface ActiveTetraminoProps {
     board: Board;
@@ -124,7 +125,7 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
     // First two pieces occupied are the blocks facing T. If it's not T obv there's no T-Spin
     // If the amount of filled corners is less than 3 it is not a T-Spin
     // If the front corners facing the T are filled OR the last rotation was kick 3/4 then it's a T-Spin, else mini
-    checkTSpin(kickIndex: number) {
+    checkTSpin(kickIndex: number): TSpinType {
         if (this.type != TetraminoType.T) return TSpinType.NONE;
         const piecesOccupied = [{ x: 1, y: 1 }, { x: -1, y: 1 }, { x: -1, y: -1 }, { x: 1, y: -1 }]
             .map(x => getDirectionOffset(this.direction, x))
@@ -185,8 +186,9 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
         if (this.board.paused) return;
         if (getHold && this.board.hold.used) return;
         if (!this.board.next.length && this.board.hold.type == TetraminoType.NONE) {
-            this.board.checkWhenConditions();
-            void this.board.gameOver();
+            this.board.setPaused(PauseType.ON);
+            this.type = TetraminoType.NONE;
+            this.board.redraw();
             return;
         }
 
@@ -223,5 +225,6 @@ export default class ActiveTetramino extends Component<ActiveTetraminoProps, Act
         if (!this.move(0, 0)) void this.board.gameOver();
         const { type, direction, coords } = this;
         this.setState(({ type, direction, coords }));
+        this.board.redraw();
     }
 }
